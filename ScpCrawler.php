@@ -1791,8 +1791,9 @@ class ScpPageList extends WikidotPageList
         }
         $deleted = count($this->toDelete);
         // Lastly delete pages that are not on site anymore
-        foreach ($this->toDelete as $pageId => $page) {
+        foreach ($this->toDelete as $pageId => $page) {            
             ScpPageDbUtils::delete($link, $pageId, $logger);
+            WikidotLogger::logFormat($logger, "::: Deleting page %s (%d) :::", array($page->getPageName(), $pageId));
         }        
         WikidotLogger::logFormat($logger, "::: Saved %d pages (%d changed, %d unique) :::", array($saved, $changed, $total));
         WikidotLogger::logFormat($logger, "::: Deleted %d pages :::", array($deleted));
