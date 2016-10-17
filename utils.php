@@ -2,7 +2,6 @@
 <?php
 
 require_once "auth.inc";
-require_once "WikidotCrawler.php";
 
 class KeepAliveMysqli
 {
@@ -17,7 +16,7 @@ class KeepAliveMysqli
     private $database;
     private $port;    
 
-    public function __construct($host, $login, $password, $database, $port, $logger = nil)
+    public function __construct($host, $login, $password, $database, $port, $logger = null)
     {
         $this->host = $host;
         $this->login = $login;

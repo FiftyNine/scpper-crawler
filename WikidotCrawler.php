@@ -11,8 +11,20 @@ require_once 'phpQuery/phpQuery.php';
 /************ Classes for logging *********************/
 /******************************************************/
 
+if (defined('SCP_MULTITHREADED')) {
+    abstract class WikidotLoggerBase extends Threaded
+    {
+        
+    }
+} else {
+    abstract class WikidotLoggerBase
+    {
+        
+    }
+}
+
 // Base class for loggers
-abstract class WikidotLogger
+abstract class WikidotLogger extends WikidotLoggerBase
 {
     /*** Fields ***/
     private $timeZone = null;
@@ -468,10 +480,9 @@ class WikidotPage
     private function extractPageInfo($html, WikidotLogger $logger = null)
     {
         if (!$html)
-            return;
+            return;        
         $doc = phpQuery::newDocument($html);
-    
-        $this->setProperty('siteId', WikidotUtils::extractSiteId($html));
+        $this->setProperty('siteId', WikidotUtils::extractSiteId($html));        
         if (!$this->getSiteId()) {
             WikidotLogger::logFormat(
                 $logger, 
@@ -567,7 +578,7 @@ class WikidotPage
     }
 
     // Informs the object that it was changed
-    protected function changed()
+    protected function changed($message = null)
     {
         // Do nothing
     }
@@ -587,22 +598,22 @@ class WikidotPage
             $this->changed();
         } elseif ($name == "pageId" && is_int($value) && $this->pageId !== $value) {
             $this->pageId = $value;
-            $this->changed();
+            $this->changed($name);
         } elseif ($name == "categoryId" && is_int($value) && $this->categoryId !== $value) {
             $this->categoryId = $value;
-            $this->changed();
+            $this->changed($name);
         } elseif ($name == "siteName" && is_string($value) && $this->siteName !== $value) {
             $this->siteName = $value;
-            $this->changed();
+            $this->changed($name);
         } elseif ($name == "pageName" && is_string($value) && $this->pageName !== $value) {
             $this->pageName = $value;
-            $this->changed();
+            $this->changed($name);
         } elseif ($name == "title" && is_string($value) && $this->title !== $value) {
             $this->title = $value;
-            $this->changed();
-        } elseif ($name == "source" && is_string($value) && $this->source !== $value) {
+            $this->changed($name);
+        } elseif ($name == "source" && (is_string($value) || $value == null) && $this->source !== $value) {
             $this->source = $value;
-            $this->changed();
+            $this->changed($name);
         } elseif ($name == "tags" && is_array($value)) {
             asort($value);            
             if (!is_array($this->tags)) {
@@ -610,14 +621,14 @@ class WikidotPage
             }
             if (array_diff($this->tags, $value) || array_diff($value, $this->tags)) {
                 $this->tags = $value;
-                $this->changed();
+                $this->changed($name);
             }
         } elseif ($name == "votes" && is_array($value) && $this->votes != $value) {
             $this->votes = $value;
-            $this->changed();
+            $this->changed($name);
         } elseif ($name == "revisions" && is_array($value) && $this->revisions != $value) {
             $this->revisions = $value;
-            $this->changed();
+            $this->changed($name);
         }
     }
 
@@ -731,7 +742,7 @@ class WikidotPage
     public function retrievePageInfo(WikidotLogger $logger = null)
     {        
         try {
-            $html = WikidotUtils::requestPage($this->getSiteName(), $this->getPageName(), $logger);
+            $html = WikidotUtils::requestPage($this->getSiteName(), $this->getPageName(), $logger);            
             if (!$html)
                 return false;            
             if (!$this->extractPageInfo($html, $logger)) {
@@ -886,7 +897,7 @@ class WikidotPageList
     private $siteName;
     // Array of (PageId => WikidotPage)    
     protected $pages;
-    // Array of (PageName => WikidotPage)
+    // Array of (PageName)
     protected $failedPages;
 
     /*** Protected ***/
@@ -919,6 +930,12 @@ class WikidotPageList
             $this->pages[$pageId] = $page;
         }
     }    
+    
+    // Remove a page from the list
+    public function removePage($pageId)
+    {
+        unset($this->pages[$pageId]);
+    }
     
     // Returns list of pages without retrieving pages itself 
     public function fetchListOfPages($criteria, WikidotLogger $logger = null)
@@ -997,8 +1014,8 @@ class WikidotPageList
                     $this->addPage($page);
                     $success++;
                 } else {
-                    if (!isset($this->failedPages[$pageName])) {
-                        $this->failedPages[$pageName] = $page;
+                    if (!array_search($pageName, $this->failedPages)) {
+                        $this->failedPages[] = $pageName;
                     }
                     $fail++;
                 }
@@ -1032,14 +1049,24 @@ class WikidotPageList
         return $res;
     }
     
-    // Retry loading failed pages
-    public function retryFailed($retrieveAll, WikidotLogger $logger)
+    /**
+     * Try to (re)load a list of pages
+     * @param array(string) $list
+     * @param WikidotLogger $logger
+     */
+    public function retrieveList(&$list, $retrieveAll, WikidotLogger $logger = null)
     {
-        if (!$this->hasFailed()) {
+        if (!$list || !count($list)) {
             return;
         }
         $success = 0;
-        foreach ($this->failedPages as $pageName => $page) {
+        for ($i=count($list)-1; $i>=0; $i--) {
+            $pageName = $list[$i];
+            $page = $this->getPageByName($pageName);
+            if (!$page) {
+                $pageClass = $this->getPageClass(); 
+                $page = new $pageClass($this->getSiteName(), $pageName);
+            }
             if ($retrieveAll) {
                 $res = $page->retrieveAll($logger);
             } else {
@@ -1047,11 +1074,21 @@ class WikidotPageList
             }
             if ($res) {
                 $this->addPage($page);
-                unset($this->failedPages[$pageName]);
+                unset($list[$i]);
                 $success++;
             }
         }
-        WikidotLogger::logFormat($logger, "Retrieved %d of %d earlier failed pages", array($success, $success+count($this->failedPages)));
+        WikidotLogger::logFormat($logger, "Retrieved %d of %d requested pages", array($success, $success+count($list)));
+    }
+    
+    // Retry loading failed pages
+    public function retryFailed($retrieveAll, WikidotLogger $logger = null)
+    {
+        if (!$this->hasFailed()) {
+            return;
+        }
+        $this->retrieveList($this->failedPages, $retrieveAll, $logger);
+        // WikidotLogger::logFormat($logger, "Retrieved %d of %d earlier failed pages", array($success, $success+count($this->failedPages)));
     }
     
     /*** Access methods ***/

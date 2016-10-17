@@ -538,7 +538,7 @@ class ScpPageDbUtils
     const VIEW_TITLE = 'Title';    
     const VIEW_SOURCE = 'Source';
     // Text of SQL requests
-    const SELECT_TEXT = 'SELECT __Id, SiteId, SiteName, PageName, Title, CategoryId FROM view_pages WHERE PageId = ?';
+    const SELECT_TEXT = 'SELECT __Id, SiteId, SiteName, PageName, Title, CategoryId, Source FROM view_pages WHERE PageId = ?';
     const SELECT_ID_TEXT = 'SELECT __Id FROM view_pages WHERE PageId = ?';
     const INSERT_TEXT = 'INSERT INTO pages (SiteId, WikidotId, CategoryId, Name, Title, Source) VALUES (?, ?, ?, ?, ?, ?)';
     const UPDATE_TEXT = 'UPDATE pages SET CategoryId = ?, Name = ?, Title = ?, Source = COALESCE(?, Source) WHERE WikidotId = ?';
@@ -1324,6 +1324,8 @@ class ScpPage extends WikidotPage
     private $modified = true;
     // Hash of vote array
     private $votesHash;
+    // Hash of source
+    private $sourceHash;
 
     /*** Private ***/
 
@@ -1458,9 +1460,9 @@ class ScpPage extends WikidotPage
     }
 
     // Informs the object that it was changed
-    protected function changed()
+    protected function changed($message = null)
     {
-        $this->modified = true;        
+        $this->modified = true;
     }    
 
     // Set value by property name
@@ -1482,6 +1484,11 @@ class ScpPage extends WikidotPage
                 if (!$this->dbId || $maxRev > $this->getLastRevision()) {
                     parent::setProperty($name, $value);
                 }
+            }
+        } else if ($name == 'source' && $this->getSource() == null && $value !== null && $this->sourceHash !== null) {
+            $newHash = md5($value);
+            if ($newHash!==$this->sourceHash) {
+                parent::setProperty($name, $value);
             }
         } else {
             parent::setProperty($name, $value);
@@ -1561,6 +1568,12 @@ class ScpPage extends WikidotPage
                 ksort($votes);
                 $this->votesHash = md5(json_encode($votes));
                 unset($votes);
+                // Same for the source
+                if ($this->getSource()!== null)
+                {
+                    $this->sourceHash = md5($this->getSource());
+                    $this->setProperty('source', null);
+                }
                 $this->modified = false;
                 $res = true;
             }
@@ -1667,137 +1680,6 @@ class ScpPageList extends WikidotPageList
         );
         return true;
     }
-    
-    // Helper function for updateDatabase
-    private function saveUpdatingPage(ScpPage $page, ScpUserList $userList, KeepAliveMysqli $link, WikidotLogger $logger) 
-    {
-        // But first, we need to add to DB users that aren't there yet
-        foreach ($page->getRetrievedUsers() as $userId => $user) {
-            $userList->addUser($user);
-            $listUser = $userList->getUserById($userId);
-            if ($listUser->getModified()) {
-                $listUser->saveToDB($link, $logger);
-            }
-        }
-        // Now save the page
-        return $page->saveToDB($link, $logger);
-    }
-    
-    // Load list from DB, update it from website and save changes back to DB
-    public function updateDatabase(KeepAliveMysqli $link, WikidotLogger $logger = null, ScpUserList $userList = null)
-    {        
-        if (!$userList) { 
-            // Prepare list of users. We need it to add users retrieved along with pages.
-            $userList = new ScpUserList($this->siteName);
-            $userList->loadFromDB($link, $logger);
-        }
-        // WikidotLogger::logFormat($logger, "Before loading from DB: %d", array(memory_get_usage()));
-        // Let's retrieve all pages from DB
-        $this->loadFromDB($link, $logger);
-        // WikidotLogger::logFormat($logger, "After loading from DB: %d", array(memory_get_usage()));
-        // Initialize array of pages that were deleted from the site
-        $this->toDelete = array();
-        // Add all pages from DB to it, remove them one at a time later
-        foreach ($this->pages as $pageId => $page) {
-            $this->toDelete[$pageId] = $page;
-        }
-        // WikidotLogger::logFormat($logger, "Before retrieving list: %d", array(memory_get_usage()));
-        // Get a list of pages from the site (only names)
-        $sitePages = $this->fetchListOfPages(null, $logger);
-        // WikidotLogger::logFormat($logger, "After retrieving list: %d", array(memory_get_usage()));
-        $total = count($sitePages);
-        $updated = 0;
-        $saved = 0;
-        $changed = 0;
-        // Array to detect duplicating pages (redirects from several urls to a single page)
-        $done = array();
-        // Iterate through all pages and process them one by one
-        for ($i = count($sitePages)-1; $i>=0; $i--) {
-            $page = $sitePages[$i];     
-            // Maintain a list of pages we failed to retrieve so we could try again later
-            if (!$page->retrievePageInfo($logger)) {
-                $this->failedPages[$page->getPageName()] = $page;
-                continue;
-            }
-            if (!isset($done[$page->getId()])) {
-                // Let's see if this page already exists in the database
-                $oldPage = $this->getPageById($page->getId());
-                // If a page still exists on the website we don't need to delete it from the database
-                unset($this->toDelete[$page->getId()]);            
-                // Always have to retrieve votes because it's impossible to tell without it if they have changed
-                if (!$page->retrievePageVotes($logger)) {
-                    $this->failedPages[$page->getPageName()] = $page;
-                    continue;
-                }
-                $good = true;
-                // If it's a new page or it was edited, we have to retrieve source and list of revisions
-                if (!$oldPage || $page->getLastRevision() != $oldPage->getLastRevision() || $oldPage->getSource() == null || strlen($oldPage->getSource() < 10)) {
-                    $good = $page->retrievePageHistory($logger) && $page->retrievePageSource($logger);
-                }
-                // If we retrieved everything successfully, add page to the list or copy information to the existing page on list
-                if ($good) {
-                    $this->addPage($page);
-                    $page = $this->getPageById($page->getId());
-                    // Then save this page to DB
-                    if ($page->getModified()) {
-                        $changed++;
-                        if ($this->saveUpdatingPage($page, $userList, $link, $logger)) {
-                            $saved++;
-                        }
-                    }
-                    $updated++;
-                    $done[$page->getId()] = true;
-                } else {
-                    // Otherwise, to the failed pages we go
-                    $this->failedPages[$page->getPageName()] = $page;
-                }                
-            } else {
-                $total--;
-            }
-            // Null all references to the page and free memory, unless it's in the failed list
-            unset($this->pages[$page->getId()]);
-            unset($sitePages[$i]);
-            unset($page);
-            unset($oldPage);
-            // Logging our progress
-            if ($updated % 100 == 0) {
-                WikidotLogger::logFormat(
-                    $logger, 
-                    "%d pages updated [%d kb used]...", 
-                    array($updated, round(memory_get_usage()/1024))
-                );
-            }
-            // debug
-            // Let's try to spread the load a bit
-//            sleep(1);
-        }
-        // Remove from the list pages that are not on the site anymore
-        foreach ($this->toDelete as $pageId => $page) {
-            unset($this->pages[$pageId]);
-        }
-        // One last try to save pages that failed the first time - there shouldn't be many of them
-        $this->retryFailed(true, $logger);
-        foreach ($this->pages as $pageId => $page) {
-            if ($page->getModified() && !isset($done[$page->getId()])) {
-                $done[$page->getId()] = true;
-                $changed++;
-                if ($this->saveUpdatingPage($page, $userList, $link, $logger)) {
-                    $saved++;
-                }
-            } else {
-                $total--;
-            }
-            $updated++;
-        }
-        $deleted = count($this->toDelete);
-        // Lastly delete pages that are not on site anymore
-        foreach ($this->toDelete as $pageId => $page) {            
-            ScpPageDbUtils::delete($link, $pageId, $logger);
-            WikidotLogger::logFormat($logger, "::: Deleting page %s (%d) :::", array($page->getPageName(), $pageId));
-        }        
-        WikidotLogger::logFormat($logger, "::: Saved %d pages (%d changed, %d unique) :::", array($saved, $changed, $total));
-        WikidotLogger::logFormat($logger, "::: Deleted %d pages :::", array($deleted));
-    }    
 }
 
 // SCP database user class
@@ -2030,243 +1912,8 @@ class ScpUserList extends WikidotUserList
         $webList->retrieveSiteMembers($logger);                
         foreach ($webList->users as $userId => $usr) {
             $this->addUser($usr['User'], $usr['Date']);
-        }
-    }
-}
-
-/*** Functions ***/
-
-class ScpSiteUtils
-{
-    const ROLE_AUTHOR = 1;
-    const ROLE_REWRITER = 2;
-    const ROLE_TRANSLATOR = 3;
-
-    public static function setContributors(KeepAliveMysqli $link, ScpPage $page, $role, $users)
-    {
-        $userIds = array();
-        foreach ($users as $user) {
-            $userIds[] = (string)($user->getId());
-        }
-        $link->query(vsprintf("CALL SET_CONTRIBUTORS(%d, %d, '%s')", array($page->getId(), $role, implode(',', $userIds))));
-    }
-
-    // Get information about authorship overrides from Alexandra's override page and write it to DB
-    public static function updateStatusOverridesEn_Old(
-        KeepAliveMysqli $link, 
-        ScpPageList $pages = null, 
-        ScpUserList $users = null, 
-        WikidotLogger $logger = null
-    )
-    {
-        $html = WikidotUtils::requestPage('05command', 'alexandra-rewrite', $logger);
-        $doc = phpQuery::newDocument($html);
-        $table = pq('div#page-content table.wiki-content-table', $doc);
-        if (!$table) {
-            return;
-        }
-        $list = array();
-        $i = 0;
-        foreach (pq('tr', $table) as $row) {
-            if ($i > 0) {
-                $pgName = strtolower(pq('td:first', $row)->text());
-                $list[$pgName] = pq('td:last', $row)->text();
-            }
-            $i++;
-        }
-        $doc->unloadDocument();
-        if (!$pages) {
-            $pages = new ScpPageList('scp-wiki');
-            $pages->loadFromDB($link, $logger);
-        }
-        if (!$users) {
-            $users = new ScpUserList('scp-wiki');
-            $users->loadFromDB($link, $logger);
-        }
-        $saved = 0;
-        foreach ($list as $pageName => $override) {
-            $ovStr = explode(':', $override);
-            $page = $pages->getPageByName($pageName);
-            $userName = ($ovStr[0] == '') ? $ovStr[2] : $ovStr[0];
-            if ($userName == 'Unknown Author') {
-                $user = $users->getUserById(-1);
-            } else {
-                $user = $users->getUserByDisplayName($userName);
-            }
-            $status = ($ovStr[0] == '') ? $ovStr[1] : 'rewrite';
-            if ($page && $user) {
-                if ($status == 'rewrite') {
-                    self::setContributors($link, $page, self::ROLE_REWRITER, array($user));
-                } else {
-                    self::setContributors($link, $page, self::ROLE_AUTHOR, array($user));
-                }
-                $saved++;
-            } else {
-                if (!$page) {
-                    WikidotLogger::logFormat($logger, 'Overriden page "%s" not found', array($pageName));
-                }
-                if (!$user) {
-                    WikidotLogger::logFormat($logger, 'Overriden author "%s" not found', array($userName));
-                }                
-            }
-        }
-        WikidotLogger::logFormat($logger, "::: Author overrides updates, %d entries saved (%d total) :::", array($saved, count($list)));
-    }
-
-    // Get information about authorship overrides from attribution page and write it to DB
-    public static function updateStatusOverridesEn(
-        KeepAliveMysqli $link, 
-        ScpPageList $pages = null, 
-        ScpUserList $users = null, 
-        WikidotLogger $logger = null
-    )
-    {
-        $html = WikidotUtils::requestPage('scp-wiki', 'attribution-metadata', $logger);
-        $doc = phpQuery::newDocument($html);
-        $table = pq('div#page-content table.wiki-content-table', $doc);
-        if (!$table) {
-            return;
-        }
-        $list = array();
-        $i = 0;
-        foreach (pq('tr', $table) as $row) {
-            if ($i > 0) {
-                $pgName = strtolower(pq('td:first-child', $row)->text());
-                $type = pq('td:nth-child(3)', $row)->text();
-                if (!array_key_exists($pgName, $list)) {
-                    $list[$pgName] = array();
-                }
-                if (!array_key_exists($type, $list[$pgName])) {
-                    $list[$pgName][$type] = array();
-                }
-                $list[$pgName][$type][] = array(
-                    'user' => pq('td:nth-child(2)', $row)->text(),
-                    'date' => pq('td:last-child', $row)->text()
-                );
-            }
-            $i++;
-        }
-        $doc->unloadDocument();
-        if (!$pages) {
-            $pages = new ScpPageList('scp-wiki');
-            $pages->loadFromDB($link, $logger);
-        }
-        if (!$users) {
-            $users = new ScpUserList('scp-wiki');
-            $users->loadFromDB($link, $logger);
-        }
-        $saved = 0;
-        foreach ($list as $pageName => $overrideTypes) {            
-            $page = $pages->getPageByName($pageName);            
-            if (!$page) {
-                WikidotLogger::logFormat($logger, 'Overriden page "%s" not found', array($pageName));
-                continue;
-            }
-            foreach ($overrideTypes as $type => $overrides) {
-                $ovUsers = array();
-                foreach ($overrides as $override) {
-                    if ($override['user'] == 'Unknown Author') {
-                        $user = $users->getUserById(-1);
-                    } else {
-                        $user = $users->getUserByDisplayName($override['user']);
-                    }
-                    if (!$user) {
-                        WikidotLogger::logFormat($logger, 'Overriden author "%s" not found', array($override['user']));
-                        continue;
-                    } else {
-                        $ovUsers[] = $user;
-                    }                    
-                }
-                if (count($ovUsers) == 0) {
-                    continue;
-                }
-                switch ($type) {
-                    case 'rewrite':
-                        self::setContributors($link, $page, self::ROLE_REWRITER, $ovUsers);
-                        break;
-                    case 'translator':
-                        self::setContributors($link, $page, self::ROLE_TRANSLATOR, $ovUsers);
-                        break;
-                    case 'author':
-                        self::setContributors($link, $page, self::ROLE_AUTHOR, $ovUsers);
-                        break;                        
-                    default: 
-                        WikidotLogger::logFormat($logger, 'Unknown role "%s" for page "%s"', array($type, $pageName));
-                }
-                $saved++;
-            }
-        }
-        WikidotLogger::logFormat($logger, "::: Author overrides updates, %d entries saved (%d total) :::", array($saved, count($list)));
-    }
-}
-
-function updateStatusOverrides($siteName, KeepAliveMysqli $link, ScpPageList $pages = null, ScpUserList $users = null, WikidotLogger $logger = null)
-{
-    if ($siteName == 'scp-wiki') {
-        ScpSiteUtils::updateStatusOverridesEn($link, $pages, $users, $logger);
-        WikidotLogger::log($logger, "Updating page kinds...");
-        $link->query("CALL FILL_PAGE_KINDS_EN()");        
-    } else if ($siteName == 'scp-ru') {
-        WikidotLogger::log($logger, "Updating page kinds...");
-        $link->query("CALL FILL_PAGE_KINDS_RU()");                
-    }
-}
-
-// Load all data from site and save it to DB
-function loadSiteData($siteName, KeepAliveMysqli $link, WikidotLogger $logger)
-{
-    WikidotLogger::log($logger, "\n");
-    WikidotLogger::logFormat($logger, "======= Starting the first indexation of %s.wikidot.com =======", array($siteName));
-    $ul = new ScpUserList($siteName);
-    $ul->retrieveSiteMembers($logger);
-    $pl = new ScpPageList($siteName);
-    $pl->retrievePages(null, 0, $logger);
-    $i = 0;
-    foreach($pl->iteratePages() as $page) {
-        $page->retrievePageModules($logger);
-        $ul->addUsersFromPage($page);
-        $i++;
-        if ($i % 100 == 0) {
-           WikidotLogger::logFormat($logger, "%d pages done...", array($i)); 
-        }
-    }
-    $ul->saveToDB($link, $logger);
-    $pl->saveToDB($link, $logger);
-    WikidotLogger::logFormat($logger, "======= The first indexation of %s.wikidot.com has finished =======", array($siteName));
-}
-
-// Update data for a site from web
-function updateSiteData($siteName, KeepAliveMysqli $link, WikidotLogger $logger)
-{
-    WikidotLogger::log($logger, "\n");
-    WikidotLogger::logFormat($logger, "======= Updating data for %s.wikidot.com =======", array($siteName));        
-    if ($dataset = $link->query("SELECT WikidotId FROM sites WHERE WikidotName='$siteName'")) {
-        if ($row = $dataset->fetch_assoc()) {
-            $siteId = (int) $row['WikidotId'];
-        }
-    }  
-    if (!isset($siteId)) {
-        WikidotLogger::log($logger, "Error: Failed to retrieve site id from database.");
-        return;
+        }        
     }    
-    $ul = new ScpUserList($siteName);
-    $ul->loadFromDB($link, $logger);    
-    $ul->updateFromSite($logger);
-    $ul->saveToDB($link, $logger);
-    $pl = new ScpPageList($siteName);
-    $pl->updateDatabase($link, $logger, $ul);
-
-    updateStatusOverrides($siteName, $link, null, $ul, $logger);
-    $link->query("UPDATE sites SET LastUpdate = Now() WHERE WikidotId = '$siteId'");
-    WikidotLogger::log($logger, "Updating user activity...");
-    $link->query("CALL UPDATE_USER_ACTIVITY('$siteId')");
-    WikidotLogger::log($logger, "Updating page summaries...");
-    $link->query("CALL UPDATE_PAGE_SUMMARY('$siteId')");
-    WikidotLogger::log($logger, "Updating site stats...");
-    $link->query("CALL UPDATE_SITE_STATS('$siteId')");	
-    WikidotLogger::logFormat($logger, "Peak memory usage: %d kb", array(round(memory_get_peak_usage()/1024)));
-    WikidotLogger::logFormat($logger, "======= Update %s.wikidot.com has finished =======", array($siteName));
 }
-
 
 ?>
