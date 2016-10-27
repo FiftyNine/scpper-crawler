@@ -11,7 +11,7 @@ require_once 'phpQuery/phpQuery.php';
 /************ Classes for logging *********************/
 /******************************************************/
 
-if (defined('SCP_MULTITHREADED')) {
+if (defined('SCP_THREADS')) {
     abstract class WikidotLoggerBase extends Threaded
     {
         
@@ -122,9 +122,19 @@ class WikidotDebugLogger extends WikidotLogger
 /******* Classes for retrieving wikidot data **********/
 /******************************************************/
 
+class WikidotStatus
+{
+    const OK = 0;
+    const NOT_FOUND = 1;
+    const REDIRECT = 2;
+    const FAILED = 3;    
+    const UNKNOWN = 4;
+}
+
 // Utility class with functions to retrieve pages and modules
 class WikidotUtils
 {
+
     /*** Fields ***/
     // Max connection time, sec
     public static $connectionTimeout = 10;
@@ -251,7 +261,8 @@ class WikidotUtils
         if (!is_array($pageNumbers) || count($pageNumbers) == 0) {
             $pageNumbers = array();
             $args['page'] = 1;
-            $firstPage = self::requestModule($siteName, $moduleName, $pageId, $args, $logger);
+            $firstPage = null;
+            self::requestModule($siteName, $moduleName, $pageId, $args, $firstPage, $logger);
             if ($firstPage) {
                 $changedArgs = (yield $firstPage);
                 $pageCount = self::extractPageCount($firstPage);
@@ -266,15 +277,18 @@ class WikidotUtils
             }
             if (is_int($i) && $i > 0) {
                 $args['page'] = $i;
-                $modulePage = self::requestModule($siteName, $moduleName, $pageId, $args, $logger);
+                $modulePage = null;
+                self::requestModule($siteName, $moduleName, $pageId, $args, $modulePage, $logger);
                 $changedArgs = (yield $modulePage);
             }
         }
     }
 
     // Request a specified module from wikidot. Returns HTML string.
-    public static function requestModule($siteName, $moduleName, $pageId, $args, WikidotLogger $logger = null)
+    public static function requestModule($siteName, $moduleName, $pageId, $args, &$html, WikidotLogger $logger = null)
     {
+        $html = null;
+        $status = WikidotStatus::FAILED;
         $fullUrl = sprintf('http://%s.wikidot.com/ajax-module-connector.php', $siteName);
         $request = self::createRequest($fullUrl);
         $request->setMethod(HTTP_Request2::METHOD_POST);
@@ -284,23 +298,22 @@ class WikidotUtils
         $args['moduleName'] = $moduleName;
         $args['pageId'] = $pageId;
         $args['page_id'] = $pageId;
-        $args['wikidot_token7'] = 'ayylmao';
-
+        $args['wikidot_token7'] = 'ayylmao';        
         $request->addPostParameter($args);
         $request->addCookie('wikidot_token7', 'ayylmao');
         if ($response = self::sendRequest($request, $logger)) {
-            $status = $response->getStatus();
-            if ($status >= 200 && $status < 300) {
+            $httpStatus = $response->getStatus();
+            if ($httpStatus >= 200 && $httpStatus < 300) {                
                 $body = json_decode($response->getBody());
                 if ($body && $body->status == 'ok') {
-                    return $body->body;
+                    $status = WikidotStatus::OK;
+                    $html = $body->body;
                 } elseif ($body->status == 'not_ok') {
                     WikidotLogger::logFormat(
                         $logger,
                         "Failed to retrieve module {%s/%s}\nWikidot error: \"%s\"\nArguments: %s",
                         array($siteName, $moduleName, $body->message, var_export($args, true))
                     );
-                    return false;
                 } else {
                     WikidotLogger::logFormat(
                         $logger,
@@ -308,13 +321,17 @@ class WikidotUtils
                         array($siteName, $moduleName, var_export($args, true))
                     );
                 }
-            } elseif ($status >= 300 && $status < 400) {
+            } elseif ($httpStatus >= 300 && $httpStatus < 400) {
+                $status = WikidotStatus::REDIRECT;
                 WikidotLogger::logFormat(
                     $logger,
                     "Failed to retrieve module {%s/%s}\nRedirect detected. HTTP status: %d\nArguments: %s",
                     array($siteName, $moduleName, $status, var_export($args, true))
                 );
             } else {
+                if ($httpStatus == 404) {
+                    $status = WikidotStatus::NOT_FOUND;
+                }
                 WikidotLogger::logFormat(
                     $logger,
                     "Failed to retrieve module {%s %s}\nHTTP status: %d. Error message: \"%s\"\nArguments: %s",
@@ -322,32 +339,43 @@ class WikidotUtils
                 );
             }
         }
+        return $status;
     }
 
-    // Request a specified page from wikidot. Returns HTML string.
-    public static function requestPage($siteName, $pageName, WikidotLogger $logger = null)
+    // Request a specified page from wikidot. Returns HTML string in $source and status as return value
+    public static function requestPage($siteName, $pageName, &$source, WikidotLogger $logger = null)
     {
+        $source = null;
         $fullUrl = sprintf('http://%s.wikidot.com/%s', $siteName, $pageName);
         $request = self::createRequest($fullUrl);
         $request->setConfig('use_brackets', true);
+        $status = WikidotStatus::FAILED;  
         if ($response = self::sendRequest($request, $logger)) {
-            $status = $response->getStatus();
-            if ($status >= 200 && $status < 300) {
-                return $response->getBody();
-            } elseif ($status >= 300 && $status < 400) {
+            $httpStatus = $response->getStatus();
+            if ($httpStatus >= 200 && $httpStatus < 300) {
+                $source = $response->getBody();
+                $status = WikidotStatus::OK;
+            } elseif ($httpStatus >= 300 && $httpStatus < 400) {
                 WikidotLogger::logFormat(
                     $logger,
                     "Failed to retrieve page {%s}. HTTP status: %d. Redirect detected",
-                    array($request->getURL(), $status)
+                    array($request->getURL(), $httpStatus)
                 );
+                $status = WikidotStatus::REDIRECT;
             } else {
                 WikidotLogger::logFormat(
                     $logger,
                     "Failed to retrieve {%s}. HTTP status: %d\nError message: \"%s\"",
-                    array($request->getURL(),$response->getStatus(), $response->getReasonPhrase())
+                    array($request->getURL(), $httpStatus, $response->getReasonPhrase())
                 );
+                if ($httpStatus === 404) {
+                    $status = WikidotStatus::NOT_FOUND;
+                } else {
+                    $status = WikidotStatus::FAILED;
+                }
             }
         }
+        return $status;
     }
 }
 
@@ -452,6 +480,8 @@ class WikidotPage
     private $siteName;
     // Wikidot page name (url), e.g. 'scp-307', 'the-czar-cometh'
     private $pageName;
+    // Retrieval status (according to WikidotStatus class)
+    private $status = WikidotStatus::UNKNOWN;
     // Wikidot inner site id
     private $siteId;
     // Wikidot inner page id
@@ -650,7 +680,8 @@ class WikidotPage
     public function retrievePageSource(WikidotLogger $logger = null)
     {
         $res = false;
-        $html = WikidotUtils::requestModule($this->getSiteName(), 'viewsource/ViewSourceModule', $this->getId(), array(), $logger);
+        $html = null;
+        WikidotUtils::requestModule($this->getSiteName(), 'viewsource/ViewSourceModule', $this->getId(), array(), $html, $logger);
         if ($html) {
             $doc = phpQuery::newDocument($html);
             $elem = pq('div.page-source', $doc);
@@ -674,7 +705,8 @@ class WikidotPage
     public function retrievePageVotes(WikidotLogger $logger = null)
     {
         $res = false;
-        $html = WikidotUtils::requestModule($this->getSiteName(), 'pagerate/WhoRatedPageModule', $this->getId(), array(), $logger);
+        $html = null;
+        WikidotUtils::requestModule($this->getSiteName(), 'pagerate/WhoRatedPageModule', $this->getId(), array(), $html, $logger);
         if ($html) {
             $doc = phpQuery::newDocument($html);
             $votes = array();
@@ -740,11 +772,13 @@ class WikidotPage
 
     // Retrieve only html of the page itself and extract information from it
     public function retrievePageInfo(WikidotLogger $logger = null)
-    {        
+    {       
+        $html = null;
         try {
-            $html = WikidotUtils::requestPage($this->getSiteName(), $this->getPageName(), $logger);            
-            if (!$html)
+            $this->status = WikidotUtils::requestPage($this->getSiteName(), $this->getPageName(), $html, $logger);            
+            if ($this->status != WikidotStatus::OK || !$html) {
                 return false;            
+            }
             if (!$this->extractPageInfo($html, $logger)) {
                 return false;
             } else {
@@ -886,6 +920,11 @@ class WikidotPage
             $this->retrievedUsers = array();
         }
         return $this->retrievedUsers;
+    }
+    
+    // Retrieval status
+    public function getStatus() {
+        return $this->status;
     }
 }
 
@@ -1279,9 +1318,10 @@ class WikidotUserList
         $res = true;
         $success = 0;
         $startTime = microtime(true);
+        $membersHtml = null;
         WikidotLogger::logFormat($logger, "::: Retrieving list of members from %s.wikidot.com :::", array($this->siteName));
         try {
-            $membersHtml = WikidotUtils::requestPage($this->siteName, 'system:members', $logger);
+            WikidotUtils::requestPage($this->siteName, 'system:members', $membersHtml, $logger);
             $this->siteId = WikidotUtils::extractSiteId($membersHtml);
             if ($membersHtml && $this->siteId) {
                 $pageCount = WikidotUtils::extractPageCount($membersHtml);

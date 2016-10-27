@@ -25,7 +25,11 @@ class ScpSiteUtils
         WikidotLogger $logger = null
     )
     {
-        $html = WikidotUtils::requestPage('05command', 'alexandra-rewrite', $logger);
+        $html = null;
+        WikidotUtils::requestPage('05command', 'alexandra-rewrite', $html, $logger);
+        if (!$html) {
+            return;
+        }
         $doc = phpQuery::newDocument($html);
         $table = pq('div#page-content table.wiki-content-table', $doc);
         if (!$table) {
@@ -87,7 +91,11 @@ class ScpSiteUtils
         WikidotLogger $logger = null
     )
     {
-        $html = WikidotUtils::requestPage('scp-wiki', 'attribution-metadata', $logger);
+        $html = null;
+        WikidotUtils::requestPage('scp-wiki', 'attribution-metadata', $html, $logger);
+        if (!$html) {
+            return;
+        }
         $doc = phpQuery::newDocument($html);
         $table = pq('div#page-content table.wiki-content-table', $doc);
         if (!$table) {
@@ -190,8 +198,6 @@ class ScpPagesUpdater
     protected $done = array();    
     // Array of names to keep track of pages we failed to load from the site
     protected $failedPages = array();
-    // List of pages to delete from the database
-    protected $toDelete = array(); 
     
     public function __construct(KeepAliveMysqli $link, ScpPageList $pages, WikidotLogger $logger = null, ScpUserList $users = null)
     {
@@ -227,11 +233,7 @@ class ScpPagesUpdater
         WikidotLogger::logFormat($this->logger, "Before loading from DB: %d", array(memory_get_usage()));
         // Let's retrieve all pages from DB
         $this->pages->loadFromDB($this->link, $this->logger);
-        WikidotLogger::logFormat($this->logger, "After loading from DB: %d", array(memory_get_usage()));
-        // Add all pages from DB to it, remove them one at a time later
-        foreach ($this->pages->iteratePages() as $page) {
-            $this->toDelete[$page->getId()] = $page;
-        }
+        WikidotLogger::logFormat($this->logger, "After loading from DB: %d", array(memory_get_usage()));        
         WikidotLogger::logFormat($this->logger, "Before retrieving list: %d", array(memory_get_usage()));
         // Get a list of pages from the site (only names)
         $this->sitePages = $this->pages->fetchListOfPages(null, $this->logger);
@@ -246,27 +248,38 @@ class ScpPagesUpdater
     
     protected function finishUpdate()
     {
-        // Remove from the list pages that are not on the site anymore
-        foreach ($this->toDelete as $pageId => $page) {
-             $this->pages->removePage($pageId);
-        }
+        $toDelete = [];
+        // At this point our list will contain only failed pages
+        // and pages that aren't on the site anymore
         // One last try to save pages that failed the first time - there shouldn't be many of them
         $this->pages->retrieveList($this->failedPages, true, $this->logger);
         foreach ($this->pages->iteratePages() as $page) {
-            if ($page->getModified() && !isset($this->done[$page->getId()])) {
-                $this->done[$page->getId()] = true;
-                $this->changed++;
-                if ($this->saveUpdatingPage($page)) {
-                    $this->saved++;
+            $id = $page->getId();
+            if ($page->getStatus() == WikidotStatus::OK) {
+                if (!isset($this->done[$id])) {
+                    $this->done[$id] = true;
+                    if ($page->getModified()) {
+                        $this->changed++;
+                        if ($this->saveUpdatingPage($page)) {
+                            $this->saved++;
+                        }
+                    }
+                } else {
+                    $this->total--;
                 }
-            } else {
-                $this->total--;
-            }
+            } else if ($page->getStatus() == WikidotStatus::NOT_FOUND && $id) {
+                $toDelete[$id] = $page;
+            } else if ($page->getStatus() == WikidotStatus::UNKNOWN && $id) {                
+                $page->retrievePageInfo();                
+                if ($page->getStatus() === WikidotStatus::NOT_FOUND || $page->getStatus() === WikidotStatus::OK && $page->getId() !== $id) {
+                    $toDelete[$id] = $page;                    
+                }
+            }            
             $this->updated++;
         }
-        $deleted = count($this->toDelete);
+        $deleted = count($toDelete);
         // Lastly delete pages that are not on site anymore
-        foreach ($this->toDelete as $pageId => $page) {            
+        foreach ($toDelete as $pageId => $page) {            
             ScpPageDbUtils::delete($this->link, $pageId, $this->logger);
             WikidotLogger::logFormat($this->logger, "::: Deleting page %s (%d) :::", array($page->getPageName(), $pageId));
         }        
@@ -277,36 +290,34 @@ class ScpPagesUpdater
     protected function processPage(ScpPage $page, $success)
     {
         $id = $page->getId();
-        if (!isset($this->done[$id])) {
-            // If we retrieved everything successfully, add page to the list or copy information to the existing page on list
-            if ($success) {
-                $this->pages->addPage($page);
-                $page = $this->pages->getPageById($id);
-                // Then save this page to DB
-                if ($page->getModified()) {
-                    $this->changed++;
-                    if ($this->saveUpdatingPage($page)) {
-                        $this->saved++;
-                    }                    
-                }
-                $this->updated++;
-                $this->done[$id] = true;
-            } else {
-                // Otherwise, to the failed pages we go
-                $this->failedPages[] = $page->getPageName();
-            }  
-        } else {
-            $this->total--;
-        }
         if ($id) {
-            // If a page still exists on the website we don't need to delete it from the database
-            unset($this->toDelete[$id]);
+            if (!isset($this->done[$id])) {
+                // If we retrieved everything successfully, add page to the list or copy information to the existing page on list
+                if ($success) {
+                    $this->pages->addPage($page);
+                    $page = $this->pages->getPageById($id);
+                    // Then save this page to DB
+                    if ($page->getModified()) {
+                        $this->changed++;
+                        if ($this->saveUpdatingPage($page)) {
+                            $this->saved++;
+                        }                    
+                    }
+                    $this->updated++;
+                    $this->done[$id] = true;
+                } else {
+                    // Otherwise, to the failed pages we go
+                    $this->failedPages[] = $page->getPageName();
+                }  
+            } else {
+                $this->total--;
+            }
+            // Null all references to the page and free memory, unless it's in the failed list
+            $this->pages->removePage($id);            
+        } else {
+            // Otherwise, to the failed pages we go
+            $this->failedPages[] = $page->getPageName();            
         }
-        // Null all references to the page and free memory, unless it's in the failed list
-        $this->pages->removePage($id);
-        // unset($this->sitePages[$i]);
-        // unset($page);
-        // unset($oldPage);
         // Logging our progress
         if ($this->updated % 100 == 0) {
             WikidotLogger::logFormat(

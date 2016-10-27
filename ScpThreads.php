@@ -67,7 +67,7 @@ class ScpMultithreadPagesUpdater extends ScpPagesUpdater
     // Process all the pages
     protected function processPages()
     {
-        $pool = new Pool(16, WebWorker::class, [$this->logger]);
+        $pool = new Pool(SCP_THREADS, WebWorker::class, [$this->logger]);
         // Iterate through all pages and process them one by one
         for ($i = count($this->sitePages)-1; $i>=0; $i--) {
             $page = $this->sitePages[$i];     
