@@ -172,6 +172,63 @@ class ScpSiteUtils
         }
         WikidotLogger::logFormat($logger, "::: Author overrides updates, %d entries saved (%d total) :::", array($saved, count($list)));
     }
+    
+    // 
+    private static function updateAltTitlesFromPage(
+        KeepAliveMysqli $link, 
+        ScpPageList $pages, 
+        $wiki, 
+        $listPage, 
+        $pattern,
+        WikidotLogger $logger = null
+    )
+    {
+        $html = null;
+        WikidotUtils::requestPage($wiki, $listPage, $html, $logger);
+        if (!$html) {
+            return;
+        }
+        $doc = phpQuery::newDocument($html);
+        $i = 0;
+        foreach (pq('div#page-content li', $doc) as $row) {            
+            $a = pq('a', $row);
+            $pageName = substr($a->attr('href'), 1);
+            if (preg_match($pattern, $pageName)) {
+                $altTitle = substr($row->textContent, strlen($a->text())+3);
+                $page = $pages->getPageByName($pageName);
+                if ($page) {
+                    $page->setProperty('altTitle', $altTitle);
+                    if ($page->getModified()) {
+                        $page->saveToDB($link, $logger);
+                        $i++;
+                    }
+                }
+            }
+        }
+        $doc->unloadDocument();        
+        return $i;
+    }
+    
+    // Update alternative titles for SCPs
+    public static function updateAltTitlesEn(
+        KeepAliveMysqli $link, 
+        ScpPageList $pages = null, 
+        WikidotLogger $logger = null
+    )
+    {
+        if (!$pages) {
+            $pages = new ScpPageList('scp-wiki');
+            $pages->loadFromDB($link, $logger);
+        }
+        $total = 0;
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki', 'scp-series', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki', 'scp-series-2', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki', 'scp-series-3', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki', 'joke-scps', '/scp-.+/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki', 'archived-scps', '/scp-\d{3,4}-arc/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki', 'scp-ex', '/scp-\d{3,4}-ex/i', $logger);
+        WikidotLogger::logFormat($logger, 'Updated alternative titles for %d pages', [$total]);
+    }    
 }
 
 class ScpPagesUpdater
@@ -388,6 +445,13 @@ class ScpSiteUpdater
             $link->query("CALL FILL_PAGE_KINDS_RU()");                
         }
     }   
+    
+    protected function updateAlternativeTitles($siteName, KeepAliveMysqli $link, ScpPageList $pages = null, WikidotLogger $logger = null)
+    {
+        if ($siteName == 'scp-wiki') {
+            ScpSiteUtils::updateAltTitlesEn($link, $pages, $logger);
+        }
+    }       
         
     // Load all data from site and save it to DB
     public function loadSiteData($siteName, KeepAliveMysqli $link, WikidotLogger $logger)
@@ -435,7 +499,11 @@ class ScpSiteUpdater
         $updater = new $updaterClass($link, $pl, $logger, $ul);
         $updater->go();
         unset($updater);
-        $this->updateStatusOverrides($siteName, $link, null, $ul, $logger);
+        $pl = new ScpPageList($siteName);
+        $pl->loadFromDB($link, $logger);        
+        $this->updateStatusOverrides($siteName, $link, $pl, $ul, $logger);
+        WikidotLogger::log($logger, "Updating alternative titles...");
+        $this->updateAlternativeTitles($siteName, $link, $pl, $logger);
         $link->query("UPDATE sites SET LastUpdate = Now() WHERE WikidotId = '$siteId'");
         WikidotLogger::log($logger, "Updating user activity...");
         $link->query("CALL UPDATE_USER_ACTIVITY('$siteId')");

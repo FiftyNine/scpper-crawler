@@ -537,11 +537,12 @@ class ScpPageDbUtils
     const VIEW_PAGE_NAME = 'PageName';
     const VIEW_TITLE = 'Title';    
     const VIEW_SOURCE = 'Source';
+    const VIEW_ALT_TITLE = 'AltTitle';  
     // Text of SQL requests
-    const SELECT_TEXT = 'SELECT __Id, SiteId, SiteName, PageName, Title, CategoryId, Source FROM view_pages WHERE PageId = ?';
+    const SELECT_TEXT = 'SELECT __Id, SiteId, SiteName, PageName, Title, AltTitle, CategoryId, Source FROM view_pages WHERE PageId = ?';
     const SELECT_ID_TEXT = 'SELECT __Id FROM view_pages WHERE PageId = ?';
-    const INSERT_TEXT = 'INSERT INTO pages (SiteId, WikidotId, CategoryId, Name, Title, Source) VALUES (?, ?, ?, ?, ?, ?)';
-    const UPDATE_TEXT = 'UPDATE pages SET CategoryId = ?, Name = ?, Title = ?, Source = COALESCE(?, Source) WHERE WikidotId = ?';
+    const INSERT_TEXT = 'INSERT INTO pages (SiteId, WikidotId, CategoryId, Name, Title, AltTitle, Source) VALUES (?, ?, ?, ?, ?, ?, ?)';
+    const UPDATE_TEXT = 'UPDATE pages SET CategoryId = ?, Name = ?, Title = ?, AltTitle = ?, Source = COALESCE(?, Source) WHERE WikidotId = ?';
     const DELETE_TEXT = 'DELETE FROM pages WHERE WikidotId = ?';
 
     /*** Fields ***/
@@ -693,15 +694,17 @@ class ScpPageDbUtils
                 'categoryId' => $page->getCategoryId(),
                 'pageName' => $page->getPageName(),
                 'title' => $page->getTitle(),
+                'altTitle' => $page->getAltTitle(),
                 'source' => $page->getSource()
             );
             self::$insertStmnt->bind_param(
-                'dddssb', 
+                'dddsssb', 
                 $arObj['siteId'], 
                 $arObj['pageId'], 
                 $arObj['categoryId'],
                 $arObj['pageName'],
                 $arObj['title'],
+                $arObj['altTitle'],
                 $arObj['source']
             );
             $res = self::$insertStmnt->execute();
@@ -744,14 +747,16 @@ class ScpPageDbUtils
                 'categoryId' => $page->getCategoryId(),
                 'pageName' => $page->getPageName(),
                 'title' => $page->getTitle(),
+                'altTitle' => $page->getAltTitle(),
                 'source' => $page->getSource(),
                 'pageId' => $page->getId()
             );
             self::$updateStmnt->bind_param(
-                'dsssd', 
+                'dssssd', 
                 $arObj['categoryId'],
                 $arObj['pageName'],
                 $arObj['title'],
+                $arObj['altTitle'],
                 $arObj['source'],
                 $arObj['pageId']
             );
@@ -1320,6 +1325,8 @@ class ScpPage extends WikidotPage
     
     // Inner database id 
     private $dbId;
+    // Alternative title (for SCP object titles)
+    private $altTitle;
     // Flag of modification since last save/load operation
     private $modified = true;
     // Hash of vote array
@@ -1353,6 +1360,9 @@ class ScpPage extends WikidotPage
         if (isset($values[ScpPageDbUtils::VIEW_TITLE])) {
             $this->setProperty('title', $values[ScpPageDbUtils::VIEW_TITLE]);
         }
+        if (isset($values[ScpPageDbUtils::VIEW_ALT_TITLE])) {
+            $this->setProperty('altTitle', $values[ScpPageDbUtils::VIEW_ALT_TITLE]);
+        }        
         if (isset($values[ScpPageDbUtils::VIEW_SOURCE])) {
             $this->setProperty('source', $values[ScpPageDbUtils::VIEW_SOURCE]);
         }
@@ -1490,6 +1500,9 @@ class ScpPage extends WikidotPage
             if ($newHash!==$this->sourceHash) {
                 parent::setProperty($name, $value);
             }
+        } else if ($name == 'altTitle' && $this->getAltTitle() !== $value) {
+            $this->altTitle = $value;
+            $this->changed();
         } else {
             parent::setProperty($name, $value);
         }
@@ -1592,6 +1605,12 @@ class ScpPage extends WikidotPage
     {
         return $this->modified;
     }    
+    
+    // Alternative title
+    public function getAltTitle()
+    {
+        return $this->altTitle;
+    }
 }
 
 // SCP database page list class
