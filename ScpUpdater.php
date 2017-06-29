@@ -224,6 +224,7 @@ class ScpSiteUtils
         $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki', 'scp-series', '/scp-\d{3,4}/i', $logger);
         $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki', 'scp-series-2', '/scp-\d{3,4}/i', $logger);
         $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki', 'scp-series-3', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki', 'scp-series-4', '/scp-\d{3,4}/i', $logger);
         $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki', 'joke-scps', '/scp-.+/i', $logger);
         $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki', 'archived-scps', '/scp-\d{3,4}-arc/i', $logger);
         $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki', 'scp-ex', '/scp-\d{3,4}-ex/i', $logger);
