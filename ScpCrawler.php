@@ -18,15 +18,15 @@ class ScpVoteDbUtils
     const SELECT_TEXT = 'SELECT UserId, Value FROM view_votes WHERE PageId = ?';
     const INSERT_TEXT = 'INSERT INTO votes (PageId, UserId, Value) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE Value = VALUES(Value);';
     const DELETE_TEXT = 'DELETE FROM votes WHERE PageId = ? AND UserId = ?';
-    
+
     /*** Fields ***/
     // Last connection used to access DB with this class
     private static $lastLink = null;
     // Prepared statements for interacting with DB
     private static $selectStmnt = null;
-    private static $insertStmnt = null;    
+    private static $insertStmnt = null;
     private static $deleteStmnt = null;
-    
+
     /*** Private ***/
     // Check if supplied connection is the same as the last time, reset statements if it's not
     private static function needStatements(KeepAliveMysqli $link)
@@ -37,7 +37,7 @@ class ScpVoteDbUtils
         }
     }
 
-    // Close prepared statement and set them to null 
+    // Close prepared statement and set them to null
     private static function closeStatement(&$statement)
     {
         if ($statement) {
@@ -45,10 +45,10 @@ class ScpVoteDbUtils
         }
         $statement = null;
     }
-    
+
     // Close and null all statements
     private static function clear() {
-        self::closeStatement(self::$selectStmnt);        
+        self::closeStatement(self::$selectStmnt);
         self::closeStatement(self::$insertStmnt);
         self::closeStatement(self::$deleteStmnt);
     }
@@ -68,7 +68,7 @@ class ScpVoteDbUtils
                         array($link->error())
                     );
                     return false;
-                }                
+                }
             }
             self::$selectStmnt->bind_param('d', $pageId);
             if (self::$selectStmnt->execute()) {
@@ -83,7 +83,7 @@ class ScpVoteDbUtils
                     $logger,
                     "Failed to SELECT votes of pageId %d\nMysqli error: \"%s\"",
                     array($pageId, self::$selectStmnt->error)
-                );                
+                );
             }
         } catch (Exception $e) {
             WikidotLogger::logFormat(
@@ -92,9 +92,9 @@ class ScpVoteDbUtils
                 array($pageId, $e->getMessage())
             );
         }
-        return $res;        
+        return $res;
     }
-    
+
     // Insert new record into votes table in DB
     public static function insert(KeepAliveMysqli $link, $pageId, $userId, $value, WikidotLogger $logger = null)
     {
@@ -110,7 +110,7 @@ class ScpVoteDbUtils
                         array($link->error())
                     );
                     return false;
-                }                                
+                }
             }
             self::$insertStmnt->bind_param('ddd', $pageId, $userId, $value);
             $res = self::$insertStmnt->execute();
@@ -127,10 +127,10 @@ class ScpVoteDbUtils
                 "Failed to INSERT vote of userId %d on pageId %d\nError: \"%s\"",
                 array($userId, $pageId, $e->getMessage())
             );
-        }                
-        return $res;            
-    }        
-    
+        }
+        return $res;
+    }
+
     // Delete vote from table in DB by page id and user id
     public static function delete(KeepAliveMysqli $link, $pageId, $userId, WikidotLogger $logger = null)
     {
@@ -146,7 +146,7 @@ class ScpVoteDbUtils
                         array($link->error())
                     );
                     return false;
-                }                                
+                }
             }
             self::$deleteStmnt->bind_param('dd', $pageId, $userId);
             $res = self::$deleteStmnt->execute();
@@ -163,8 +163,8 @@ class ScpVoteDbUtils
                 "Failed to DELETE vote by userId %d on pageId %d\nError: \"%s\"",
                 array($userId, $pageId, $e->getMessage())
             );
-        }                
-        return $res;            
+        }
+        return $res;
     }
 }
 
@@ -182,15 +182,15 @@ class ScpTagDbUtils
     const SELECT_TEXT = 'SELECT Tag FROM view_tags WHERE PageId = ?';
     const INSERT_TEXT = 'INSERT INTO tags (PageId, Tag) VALUES (?, ?)';
     const DELETE_TEXT = 'DELETE FROM tags WHERE PageId = ?';
-    
+
     /*** Fields ***/
     // Last connection used to access DB with this class
     private static $lastLink = null;
     // Prepared statements for interacting with DB
     private static $selectStmnt = null;
-    private static $insertStmnt = null;    
+    private static $insertStmnt = null;
     private static $deleteStmnt = null;
-    
+
     /*** Private ***/
     // Check if supplied connection is the same as the last time, reset statements if it's not
     private static function needStatements(KeepAliveMysqli $link)
@@ -201,7 +201,7 @@ class ScpTagDbUtils
         }
     }
 
-    // Close prepared statement and set them to null 
+    // Close prepared statement and set them to null
     private static function closeStatement(&$statement)
     {
         if ($statement) {
@@ -209,10 +209,10 @@ class ScpTagDbUtils
         }
         $statement = null;
     }
-    
+
     // Close and null all statements
     private static function clear() {
-        self::closeStatement(self::$selectStmnt);        
+        self::closeStatement(self::$selectStmnt);
         self::closeStatement(self::$insertStmnt);
         self::closeStatement(self::$deleteStmnt);
     }
@@ -232,7 +232,7 @@ class ScpTagDbUtils
                         array($link->error())
                     );
                     return false;
-                }                
+                }
             }
             self::$selectStmnt->bind_param('d', $pageId);
             if (self::$selectStmnt->execute()) {
@@ -247,7 +247,7 @@ class ScpTagDbUtils
                     $logger,
                     "Failed to SELECT tags of pageId %d\nMysqli error: \"%s\"",
                     array($pageId, self::$selectStmnt->error)
-                );                
+                );
             }
         } catch (Exception $e) {
             WikidotLogger::logFormat(
@@ -256,9 +256,9 @@ class ScpTagDbUtils
                 array($pageId, $e->getMessage())
             );
         }
-        return $res;        
+        return $res;
     }
-    
+
     // Insert new record into tags table in DB
     public static function insert(KeepAliveMysqli $link, $pageId, $tag, WikidotLogger $logger = null)
     {
@@ -274,7 +274,7 @@ class ScpTagDbUtils
                         array($link->error())
                     );
                     return false;
-                }                                
+                }
             }
             self::$insertStmnt->bind_param('ds', $pageId, $tag);
             $res = self::$insertStmnt->execute();
@@ -291,10 +291,10 @@ class ScpTagDbUtils
                 "Failed to INSERT tag \"%s\" of pageId %d\nError: \"%s\"",
                 array($tag, $pageId, $e->getMessage())
             );
-        }                
-        return $res;            
-    }        
-    
+        }
+        return $res;
+    }
+
     // Delete records from tags table in DB by page id
     public static function delete(KeepAliveMysqli $link, $pageId, WikidotLogger $logger = null)
     {
@@ -310,7 +310,7 @@ class ScpTagDbUtils
                         array($link->error())
                     );
                     return false;
-                }                                
+                }
             }
             self::$deleteStmnt->bind_param('d', $pageId);
             $res = self::$deleteStmnt->execute();
@@ -327,8 +327,8 @@ class ScpTagDbUtils
                 "Failed to DELETE tag \"%s\" of pageId %d\nError: \"%s\"",
                 array($tag, $pageId, $e->getMessage())
             );
-        }                
-        return $res;            
+        }
+        return $res;
     }
 }
 
@@ -354,15 +354,15 @@ class ScpRevisionDbUtils
     const SELECT_TEXT = 'SELECT __Id, RevisionId, PageId, RevisionIndex, UserId, UNIX_TIMESTAMP(DateTime), Comments FROM view_revisions WHERE RevisionId = ?';
     const SELECT_ID_TEXT = 'SELECT __Id FROM view_revisions WHERE RevisionId = ?';
     const INSERT_TEXT = 'INSERT INTO revisions (WikidotId, PageId, RevisionIndex, UserId, DateTime, Comments) VALUES (?, ?, ?, ?, FROM_UNIXTIME(?), ?)';
-    
+
     /*** Fields ***/
     // Last connection used to access DB with this class
     private static $lastLink = null;
     // Prepared statements for interacting with DB
     private static $selectStmnt = null;
     private static $selectIdStmnt = null;
-    private static $insertStmnt = null;    
-    
+    private static $insertStmnt = null;
+
     /*** Private ***/
     // Check if supplied connection is the same as the last time, reset statements if it's not
     private static function needStatements(KeepAliveMysqli $link)
@@ -373,7 +373,7 @@ class ScpRevisionDbUtils
         }
     }
 
-    // Close prepared statement and set them to null 
+    // Close prepared statement and set them to null
     private static function closeStatement(&$statement)
     {
         if ($statement) {
@@ -381,7 +381,7 @@ class ScpRevisionDbUtils
         }
         $statement = null;
     }
-    
+
     // Close and null all statements
     private static function clear() {
         self::closeStatement(self::$selectStmnt);
@@ -404,7 +404,7 @@ class ScpRevisionDbUtils
                         array($link->error())
                     );
                     return false;
-                }                
+                }
             }
             $revId = $revision->getId();
             self::$selectStmnt->bind_param('d', $revId);
@@ -414,7 +414,7 @@ class ScpRevisionDbUtils
                     $res = $dataset->fetch_assoc();
                 } else {
                     $dataset = iimysqli_stmt_get_result(self::$selectStmnt);
-                    $res = iimysqli_result_fetch_array($dataset);                    
+                    $res = iimysqli_result_fetch_array($dataset);
                 }
                 self::$selectStmnt->reset();
             } else {
@@ -422,7 +422,7 @@ class ScpRevisionDbUtils
                     $logger,
                     "Failed to SELECT from DB revision #%d (id=%d) of pageId %d\nMysqli error: \"%s\"",
                     array($revision->getIndex(), $revision->getId(), $revision->getPageId(), self::$selectStmnt->error)
-                );                
+                );
             }
         } catch (Exception $e) {
             WikidotLogger::logFormat(
@@ -431,7 +431,7 @@ class ScpRevisionDbUtils
                 array($revision->getIndex(), $revision->getId(), $revision->getPageId(), $e->getMessage())
             );
         }
-        return $res;        
+        return $res;
     }
 
     // Select revision dbId from DB by revision wikidot id and return it
@@ -471,9 +471,9 @@ class ScpRevisionDbUtils
                 array($revision->getIndex(), $revision->getId(), $revision->getPageId(), $e->getMessage())
             );
         }
-        return $res;            
-    }    
-    
+        return $res;
+    }
+
     // Insert new record into revisions table in DB
     public static function insert(KeepAliveMysqli $link, ScpRevision $revision, WikidotLogger $logger = null)
     {
@@ -489,15 +489,15 @@ class ScpRevisionDbUtils
                         array($link->error())
                     );
                     return false;
-                }                                
+                }
             }
             $arObj = (array)$revision;
             $arObj['userId'] = $revision->getUserId();
             $arObj['timestamp'] = $revision->getDateTime()->getTimestamp();
             self::$insertStmnt->bind_param(
-                'ddddds', 
-                $arObj["\0*\0revisionId"], 
-                $arObj["\0*\0pageId"], 
+                'ddddds',
+                $arObj["\0*\0revisionId"],
+                $arObj["\0*\0pageId"],
                 $arObj["\0*\0index"],
                 $arObj["userId"],
                 $arObj["timestamp"],
@@ -517,8 +517,8 @@ class ScpRevisionDbUtils
                 "Failed to INSERT into DB revision #%d (id=%d) of pageId %d\nError: \"%s\"",
                 array($revision->getIndex(), $revision->getId(), $revision->getPageId(), $e->getMessage())
             );
-        }                
-        return $res;            
+        }
+        return $res;
     }
 }
 
@@ -535,9 +535,9 @@ class ScpPageDbUtils
     const VIEW_CATEGORYID = 'CategoryId';
     const VIEW_SITE_NAME = 'SiteName';
     const VIEW_PAGE_NAME = 'PageName';
-    const VIEW_TITLE = 'Title';    
+    const VIEW_TITLE = 'Title';
     const VIEW_SOURCE = 'Source';
-    const VIEW_ALT_TITLE = 'AltTitle';  
+    const VIEW_ALT_TITLE = 'AltTitle';
     // Text of SQL requests
     const SELECT_TEXT = 'SELECT __Id, SiteId, SiteName, PageName, Title, AltTitle, CategoryId, Source FROM view_pages WHERE PageId = ?';
     const SELECT_ID_TEXT = 'SELECT __Id FROM view_pages WHERE PageId = ?';
@@ -554,7 +554,7 @@ class ScpPageDbUtils
     private static $insertStmnt = null;
     private static $updateStmnt = null;
     private static $deleteStmnt = null;
-    
+
     /*** Private ***/
     // Check if supplied connection is the same as the last time, reset statements if it's not
     private static function needStatements(KeepAliveMysqli $link)
@@ -565,7 +565,7 @@ class ScpPageDbUtils
         }
     }
 
-    // Close prepared statement and set them to null     
+    // Close prepared statement and set them to null
     private static function closeStatement(&$statement)
     {
         if ($statement) {
@@ -573,7 +573,7 @@ class ScpPageDbUtils
         }
         $statement = null;
     }
-    
+
     // Close and null all statements
     private static function clear() {
         self::closeStatement(self::$selectStmnt);
@@ -582,11 +582,11 @@ class ScpPageDbUtils
         self::closeStatement(self::$updateStmnt);
         self::closeStatement(self::$deleteStmnt);
     }
-    
+
     // Select page data from DB by page wikidot id and return it as associative array
     public static function select(KeepAliveMysqli $link, ScpPage $page, WikidotLogger $logger = null)
     {
-        
+
         $res = false;
         try {
             self::needStatements($link);
@@ -609,9 +609,9 @@ class ScpPageDbUtils
                     $res = $dataset->fetch_assoc();
                 } else {
                     $dataset = iimysqli_stmt_get_result(self::$selectStmnt);
-                    $res = iimysqli_result_fetch_array($dataset);                    
+                    $res = iimysqli_result_fetch_array($dataset);
                 }
-                self::$selectStmnt->reset();                
+                self::$selectStmnt->reset();
             } else {
                 WikidotLogger::logFormat(
                     $logger,
@@ -632,7 +632,7 @@ class ScpPageDbUtils
     // Select page dbId from DB by page wikidot id and return it
     public static function selectId(KeepAliveMysqli $link, ScpPage $page, WikidotLogger $logger = null)
     {
-        
+
         $res = false;
         try {
             self::needStatements($link);
@@ -655,7 +655,7 @@ class ScpPageDbUtils
                 self::$selectIdStmnt->reset();
             } else {
                 WikidotLogger::logFormat(
-                    $logger,            
+                    $logger,
                     "Failed to SELECT ID page http://%s.wikidot.com/%s id=%d\nMysqli error: \"%s\"",
                     array($page->getSiteName(), $page->getPageName(), $page->getId(), self::$selectIdStmnt->error)
                 );
@@ -667,13 +667,13 @@ class ScpPageDbUtils
                 array($page->getSiteName(), $page->getPageName(), $page->getId(), $e->getMessage())
             );
         }
-        return $res;            
-    }    
-    
+        return $res;
+    }
+
     // Insert new record into pages table in DB
     public static function insert(KeepAliveMysqli $link, ScpPage $page, WikidotLogger $logger = null)
     {
-        
+
         $res = false;
         try {
             self::needStatements($link);
@@ -686,7 +686,7 @@ class ScpPageDbUtils
                         array($link->error())
                     );
                     return false;
-                }                
+                }
             }
             $arObj = array(
                 'siteId' => $page->getSiteId(),
@@ -698,9 +698,9 @@ class ScpPageDbUtils
                 'source' => $page->getSource()
             );
             self::$insertStmnt->bind_param(
-                'dddsssb', 
-                $arObj['siteId'], 
-                $arObj['pageId'], 
+                'dddsssb',
+                $arObj['siteId'],
+                $arObj['pageId'],
                 $arObj['categoryId'],
                 $arObj['pageName'],
                 $arObj['title'],
@@ -721,14 +721,14 @@ class ScpPageDbUtils
                 "Failed to INSERT page http://%s.wikidot.com/%s id=%d\nError: \"%s\"",
                 array($page->getSiteName(), $page->getPageName(), $page->getId(), $e->getMessage())
             );
-        }                
+        }
         return $res;
     }
 
     // Update existing DB record by page wikidot id
     public static function update(KeepAliveMysqli $link, ScpPage $page, WikidotLogger $logger = null)
     {
-        
+
         $res = false;
         try {
             self::needStatements($link);
@@ -743,7 +743,7 @@ class ScpPageDbUtils
                     return false;
                 }
             }
-            $arObj = array(                
+            $arObj = array(
                 'categoryId' => $page->getCategoryId(),
                 'pageName' => $page->getPageName(),
                 'title' => $page->getTitle(),
@@ -752,7 +752,7 @@ class ScpPageDbUtils
                 'pageId' => $page->getId()
             );
             self::$updateStmnt->bind_param(
-                'dssssd', 
+                'dssssd',
                 $arObj['categoryId'],
                 $arObj['pageName'],
                 $arObj['title'],
@@ -766,7 +766,7 @@ class ScpPageDbUtils
                     $logger,
                     "Failed to UPDATE page http://%s.wikidot.com/%s id=%d\nMysqli error: \"%s\"",
                     array($page->getSiteName(), $page->getPageName(), $page->getId(), self::$updateStmnt->error)
-                );            
+                );
             }
         } catch (Exception $e) {
             WikidotLogger::logFormat(
@@ -775,13 +775,13 @@ class ScpPageDbUtils
                 array($page->getSiteName(), $page->getPageName(), $page->getId(), $e->getMessage())
             );
         }
-        return $res;            
+        return $res;
     }
-    
+
     // Delete existing DB record by page wikidot id
     public static function delete(KeepAliveMysqli $link, $pageId, WikidotLogger $logger = null)
     {
-        
+
         $res = false;
         try {
             self::needStatements($link);
@@ -795,7 +795,7 @@ class ScpPageDbUtils
                     );
                     return false;
                 }
-            }            
+            }
             self::$deleteStmnt->bind_param('d', $pageId);
             $res = self::$deleteStmnt->execute();
             if (!$res) {
@@ -803,7 +803,7 @@ class ScpPageDbUtils
                     $logger,
                     "Failed to DELETE pageId = %d\nMysqli error: \"%s\"",
                     array($pageId, self::$deleteStmnt->error)
-                );            
+                );
             }
         } catch (Exception $e) {
             WikidotLogger::logFormat(
@@ -812,8 +812,8 @@ class ScpPageDbUtils
                 array($pageId, $e->getMessage())
             );
         }
-        return $res;            
-    }    
+        return $res;
+    }
 }
 
 // Static utility class for saving/loading site membership from DB
@@ -828,7 +828,7 @@ class ScpMembershipDbUtils
     const VIEW_USERID = 'UserId';
     const VIEW_JOIN_DATE = 'JoinDate';
     // Text of SQL requests
-    const SELECT_TEXT = 'SELECT UserId, UNIX_TIMESTAMP(JoinDate) FROM view_membership WHERE SiteId = ?';
+    const SELECT_TEXT = 'SELECT UserId, UNIX_TIMESTAMP(JoinDate) FROM membership WHERE SiteId = ?';
     const INSERT_TEXT = 'INSERT INTO membership (SiteId, UserId, JoinDate) VALUES (?, ?, FROM_UNIXTIME(?)) ON DUPLICATE KEY UPDATE JoinDate = JoinDate';
     const DELETE_TEXT = 'DELETE FROM membership WHERE SiteId = ? and UserId = ?';
     /*** Fields ***/
@@ -838,7 +838,7 @@ class ScpMembershipDbUtils
     private static $selectStmnt = null;
     private static $insertStmnt = null;
     private static $deleteStmnt = null;
-    
+
     /*** Private ***/
     // Check if supplied connection is the same as the last time, reset statements if it's not
     private static function needStatements(KeepAliveMysqli $link)
@@ -848,8 +848,8 @@ class ScpMembershipDbUtils
             self::$lastLink = $link->getLink();
         }
     }
-    
-    // Close prepared statement and set them to null     
+
+    // Close prepared statement and set them to null
     private static function closeStatement(&$statement)
     {
         if ($statement) {
@@ -857,18 +857,18 @@ class ScpMembershipDbUtils
         }
         $statement = null;
     }
-    
+
     // Close and null all statements
     private static function clear() {
         self::closeStatement(self::$selectStmnt);
         self::closeStatement(self::$insertStmnt);
         self::closeStatement(self::$deleteStmnt);
     }
-    
+
     // Select membership data from DB by site id and return it as associative array (UserId => JoinDate)
     public static function select(KeepAliveMysqli $link, $siteId, &$membership, WikidotLogger $logger = null)
     {
-        
+
         $res = false;
         try {
             self::needStatements($link);
@@ -881,7 +881,7 @@ class ScpMembershipDbUtils
                         array($link->error())
                     );
                     return false;
-                }                                
+                }
             }
             $membership = array();
             self::$selectStmnt->bind_param('d', $siteId);
@@ -892,7 +892,7 @@ class ScpMembershipDbUtils
                     $date->setTimestamp($joinTimestamp);
                     $membership[$userId] = $date;
                 }
-                self::$selectStmnt->reset();                
+                self::$selectStmnt->reset();
                 $res = true;
             } else {
                 WikidotLogger::logFormat(
@@ -910,11 +910,11 @@ class ScpMembershipDbUtils
         }
         return $res;
     }
-    
+
     // Insert new record into membership table in DB
     public static function insert(KeepAliveMysqli $link, $siteId, $userId, $joinDate, WikidotLogger $logger = null)
     {
-        
+
         $res = false;
         try {
             self::needStatements($link);
@@ -945,14 +945,14 @@ class ScpMembershipDbUtils
                 "Failed to INSERT membership siteId = %d, userId = $d\nError: \"%s\"",
                 array($siteId, $userId, $e->getMessage())
             );
-        }                
+        }
         return $res;
     }
 
     // Delete existing DB record by siteId and userId
     public static function delete(KeepAliveMysqli $link, $siteId, $userId, WikidotLogger $logger = null)
     {
-        
+
         $res = false;
         try {
             self::needStatements($link);
@@ -974,7 +974,7 @@ class ScpMembershipDbUtils
                     $logger,
                     "Failed to DELETE user %d from site %d\nMysqli error: \"%s\"",
                     array($userId, $siteId, self::$deleteStmnt->error)
-                );            
+                );
             }
         } catch (Exception $e) {
             WikidotLogger::logFormat(
@@ -984,7 +984,7 @@ class ScpMembershipDbUtils
             );
         }
         return $res;
-    }    
+    }
 }
 
 // Static utility class for saving/loading users from DB
@@ -1012,7 +1012,7 @@ class ScpUserDbUtils
     private static $selectIdStmnt = null;
     private static $insertStmnt = null;
     private static $updateStmnt = null;
-    
+
     /*** Private ***/
     // Check if supplied connection is the same as the last time, reset statements if it's not
     private static function needStatements(KeepAliveMysqli $link)
@@ -1022,8 +1022,8 @@ class ScpUserDbUtils
             self::$lastLink = $link->getLink();
         }
     }
-    
-    // Close prepared statement and set them to null     
+
+    // Close prepared statement and set them to null
     private static function closeStatement(&$statement)
     {
         if ($statement) {
@@ -1031,7 +1031,7 @@ class ScpUserDbUtils
         }
         $statement = null;
     }
-    
+
     // Close and null all statements
     private static function clear() {
         self::closeStatement(self::$selectStmnt);
@@ -1039,11 +1039,11 @@ class ScpUserDbUtils
         self::closeStatement(self::$insertStmnt);
         self::closeStatement(self::$updateStmnt);
     }
-    
+
     // Select user data from DB by user wikidot id and return it as associative array
     public static function select(KeepAliveMysqli $link, ScpUser $user, WikidotLogger $logger = null)
     {
-        
+
         $res = false;
         try {
             self::needStatements($link);
@@ -1056,7 +1056,7 @@ class ScpUserDbUtils
                         array($link->error())
                     );
                     return false;
-                }                                
+                }
             }
             $userId = $user->getId();
             self::$selectStmnt->bind_param('d', $userId);
@@ -1066,9 +1066,9 @@ class ScpUserDbUtils
                     $res = $dataset->fetch_assoc();
                 } else {
                     $dataset = iimysqli_stmt_get_result(self::$selectStmnt);
-                    $res = iimysqli_result_fetch_array($dataset);                    
+                    $res = iimysqli_result_fetch_array($dataset);
                 }
-                self::$selectStmnt->reset();                
+                self::$selectStmnt->reset();
             } else {
                 WikidotLogger::logFormat(
                     $logger,
@@ -1089,7 +1089,7 @@ class ScpUserDbUtils
     // Select user dbId from DB by user wikidot id and return it
     public static function selectId(KeepAliveMysqli $link, ScpUser $user, WikidotLogger $logger = null)
     {
-        
+
         $res = false;
         try {
             self::needStatements($link);
@@ -1124,13 +1124,13 @@ class ScpUserDbUtils
                 array($user->getWikidotName(), $user->getId(), $e->getMessage())
             );
         }
-        return $res;            
-    }    
-    
+        return $res;
+    }
+
     // Insert new record into users table in DB
     public static function insert(KeepAliveMysqli $link, ScpUser $user, WikidotLogger $logger = null)
     {
-        
+
         $res = false;
         try {
             self::needStatements($link);
@@ -1152,10 +1152,10 @@ class ScpUserDbUtils
                 'deleted' => $user->getDeleted()
             );
             self::$insertStmnt->bind_param(
-                'dssd', 
-                $values["userId"], 
-                $values["wikidotName"], 
-                $values["displayName"], 
+                'dssd',
+                $values["userId"],
+                $values["wikidotName"],
+                $values["displayName"],
                 $values["deleted"]
             );
             $res = self::$insertStmnt->execute();
@@ -1172,19 +1172,19 @@ class ScpUserDbUtils
                 "Failed to INSERT user %s (id %d)\nError: \"%s\"",
                 array($user->getWikidotName(), $user->getId(), $e->getMessage())
             );
-        }                
+        }
         return $res;
     }
 
     // Update existing DB record by user wikidot id
     public static function update(KeepAliveMysqli $link, ScpUser $user, WikidotLogger $logger = null)
     {
-        
+
         $res = false;
         try {
             self::needStatements($link);
             if (!self::$updateStmnt) {
-                self::$updateStmnt = $link->prepare(self::UPDATE_TEXT);                
+                self::$updateStmnt = $link->prepare(self::UPDATE_TEXT);
                 if (!self::$updateStmnt) {
                     WikidotLogger::logFormat(
                         $logger,
@@ -1201,9 +1201,9 @@ class ScpUserDbUtils
                 'deleted' => $user->getDeleted()
             );
             self::$updateStmnt->bind_param(
-                'ssdd', 
-                $values["wikidotName"], 
-                $values["displayName"], 
+                'ssdd',
+                $values["wikidotName"],
+                $values["displayName"],
                 $values["deleted"],
                 $values["userId"]
             );
@@ -1213,7 +1213,7 @@ class ScpUserDbUtils
                     $logger,
                     "Failed to UPDATE user %s (id %d)\nMysqli error: \"%s\"",
                     array($user->getWikidotName(), $user->getId(), self::$updateStmnt->error)
-                );            
+                );
             }
         } catch (Exception $e) {
             WikidotLogger::logFormat(
@@ -1223,7 +1223,7 @@ class ScpUserDbUtils
             );
         }
         return $res;
-    }    
+    }
 }
 
 // SCP database revision class
@@ -1237,11 +1237,11 @@ class ScpRevision extends WikidotRevision
     {
         return 'ScpUser';
     }
-    
+
     // Save revision to DB
     public function saveToDB(KeepAliveMysqli $link, WikidotLogger $logger = null)
     {
-        
+
         $res = false;
         try {
             if (!$this->dbId) {
@@ -1256,8 +1256,8 @@ class ScpRevision extends WikidotRevision
                 $res = true;
             if (!$res) {
                 WikidotLogger::logFormat(
-                    $logger, 
-                    "Failed to save to DB revision #%d (id=%d) of pageId %d", 
+                    $logger,
+                    "Failed to save to DB revision #%d (id=%d) of pageId %d",
                     array($this->index, $this->revisionId, $this->pageId)
                );
             }
@@ -1266,15 +1266,15 @@ class ScpRevision extends WikidotRevision
                 $logger,
                 "Failed to save to DB revision #%d (id=%d) of pageId %d\nError: \"%s\"",
                 array($this->index, $this->revisionId, $this->pageId, $e->getMessage())
-            );            
+            );
         }
         return $res;
     }
-    
+
     // Load revision from DB by revisionId
     public function loadFromDB(KeepAliveMysqli $link, WikidotLogger $logger = null)
     {
-        
+
         $res = false;
         try {
             if ($data = ScpRevisionDbUtils::select($link, $this, $logger)) {
@@ -1288,9 +1288,9 @@ class ScpRevision extends WikidotRevision
                 array($this->index, $this->revisionId, $this->pageId, $e->getMessage())
             );
         }
-        return $res;    
+        return $res;
     }
-    
+
     // Set field values from associative array returned by SELECT
     public function setDbValues($values, WikidotLogger $logger = null)
     {
@@ -1311,19 +1311,19 @@ class ScpRevision extends WikidotRevision
         }
         if (isset($values[ScpRevisionDbUtils::VIEW_DATETIME])) {
             $this->dateTime = new DateTime($values[ScpRevisionDbUtils::VIEW_DATETIME]);
-        }        
+        }
         if (isset($values[ScpRevisionDbUtils::VIEW_COMMENTS])) {
             $this->comments = $values[ScpRevisionDbUtils::VIEW_COMMENTS];
-        }        
+        }
     }
 }
 
 // SCP database page class
 class ScpPage extends WikidotPage
-{   
+{
     /*** Fields ***/
-    
-    // Inner database id 
+
+    // Inner database id
     private $dbId;
     // Alternative title (for SCP object titles)
     private $altTitle;
@@ -1353,21 +1353,21 @@ class ScpPage extends WikidotPage
         }
         if (isset($values[ScpPageDbUtils::VIEW_SITE_NAME])) {
             $this->setProperty('siteName', $values[ScpPageDbUtils::VIEW_SITE_NAME]);
-        }        
+        }
         if (isset($values[ScpPageDbUtils::VIEW_PAGE_NAME])) {
             $this->setProperty('pageName', $values[ScpPageDbUtils::VIEW_PAGE_NAME]);
-        }        
+        }
         if (isset($values[ScpPageDbUtils::VIEW_TITLE])) {
             $this->setProperty('title', $values[ScpPageDbUtils::VIEW_TITLE]);
         }
         if (isset($values[ScpPageDbUtils::VIEW_ALT_TITLE])) {
             $this->setProperty('altTitle', $values[ScpPageDbUtils::VIEW_ALT_TITLE]);
-        }        
+        }
         if (isset($values[ScpPageDbUtils::VIEW_SOURCE])) {
             $this->setProperty('source', $values[ScpPageDbUtils::VIEW_SOURCE]);
         }
     }
-    
+
     // Save revisions to DB
     private function saveRevisionsToDb(KeepAliveMysqli $link, WikidotLogger $logger = null)
     {
@@ -1380,7 +1380,7 @@ class ScpPage extends WikidotPage
         }
         return $res;
     }
-    
+
     // Save tags to DB
     private function saveTagsToDb(KeepAliveMysqli $link, WikidotLogger $logger = null)
     {
@@ -1394,7 +1394,7 @@ class ScpPage extends WikidotPage
         }
         return $res;
     }
-    
+
     // Save votes to DB
     private function saveVotesToDb(KeepAliveMysqli $link, WikidotLogger $logger = null)
     {
@@ -1405,7 +1405,7 @@ class ScpPage extends WikidotPage
             if (ScpVoteDbUtils::select($link, $this->getId(), $oldVotes, $logger)) {
                 foreach($votes as $userId => $vote) {
                     unset($oldVotes[$userId]);
-                    $res = $res && ScpVoteDbUtils::insert($link, $this->getId(), $userId, $vote, $logger);                    
+                    $res = $res && ScpVoteDbUtils::insert($link, $this->getId(), $userId, $vote, $logger);
                 }
                 foreach ($oldVotes as $userId => $vote) {
                     $res = $res && ScpVoteDbUtils::delete($link, $this->getId(), $userId, $logger);
@@ -1413,7 +1413,7 @@ class ScpPage extends WikidotPage
             }
         }
         return $res;
-    }    
+    }
 
     // Load revisions from DB
     private function loadRevisionsFromDb(KeepAliveMysqli $link, WikidotLogger $logger = null)
@@ -1421,7 +1421,7 @@ class ScpPage extends WikidotPage
         $revisions = array();
         $revQuery = "SELECT * FROM ".ScpRevisionDbUtils::VIEW
             ." WHERE ".ScpRevisionDbUtils::VIEW_PAGEID." = {$this->getId()}"
-            ." ORDER BY ".ScpRevisionDbUtils::VIEW_REVISION_INDEX." DESC LIMIT 1";      
+            ." ORDER BY ".ScpRevisionDbUtils::VIEW_REVISION_INDEX." DESC LIMIT 1";
         if ($dataset = $link->query($revQuery)) {
             while ($row = $dataset->fetch_assoc()) {
                 $rev = new ScpRevision($this->getId());
@@ -1431,13 +1431,13 @@ class ScpPage extends WikidotPage
             $this->setProperty('revisions', $revisions);
         } else {
             WikidotLogger::logFormat(
-                $logger, 
-                "Failed to load from DB revisions for page http://%s.wikidot.com/%s id=%d\nError: \"%s\"", 
+                $logger,
+                "Failed to load from DB revisions for page http://%s.wikidot.com/%s id=%d\nError: \"%s\"",
                 array($this->getSiteName(), $this->getPageName(), $this->pageId, $link->error())
             );
         }
     }
-    
+
     // Load tags from DB
     private function loadTagsFromDb(KeepAliveMysqli $link, WikidotLogger $logger = null)
     {
@@ -1446,7 +1446,7 @@ class ScpPage extends WikidotPage
         asort($tags);
         $this->setProperty('tags', $tags);
     }
-    
+
     // Load votes from DB
     private function loadVotesFromDb(KeepAliveMysqli $link, WikidotLogger $logger = null)
     {
@@ -1454,9 +1454,9 @@ class ScpPage extends WikidotPage
         ScpVoteDbUtils::select($link, $this->getId(), $votes, $logger);
         $this->setProperty('votes', $votes);
     }
-    
+
     /*** Protected ***/
-    
+
     // Class of revision objects
     protected function getRevisionClass()
     {
@@ -1473,7 +1473,7 @@ class ScpPage extends WikidotPage
     protected function changed($message = null)
     {
         $this->modified = true;
-    }    
+    }
 
     // Set value by property name
     public function setProperty($name, $value)
@@ -1507,23 +1507,23 @@ class ScpPage extends WikidotPage
             parent::setProperty($name, $value);
         }
     }
-    
+
     /*** Public ***/
-    
+
     public function __construct ()
     {
-        $args = func_get_args(); 
-        $num = func_num_args(); 
+        $args = func_get_args();
+        $num = func_num_args();
         if ($num === 1 && is_int($args[0])) {
             $this->setProperty('pageId', $args[0]);
-            $this->retrievedUsers = array();            
+            $this->retrievedUsers = array();
         } elseif ($num === 2 && is_string($args[0]) && is_string($args[1])) {
             parent::__construct($args[0], $args[1]);
         } elseif ($num > 0) {
             throw new Exception("Wrong number/type of arguments in ScpPage constructor");
         }
     }
-        
+
     // Save page to DB
     public function saveToDB(KeepAliveMysqli $link, WikidotLogger $logger = null)
     {
@@ -1543,7 +1543,7 @@ class ScpPage extends WikidotPage
             }
             $res = $res && $this->saveRevisionsToDb($link, $logger);
             $res = $res && $this->saveTagsToDb($link, $logger);
-            $res = $res && $this->saveVotesToDb($link, $logger);            
+            $res = $res && $this->saveVotesToDb($link, $logger);
             if ($res) {
                 $link->commit();
                 $this->modified = false;
@@ -1563,16 +1563,16 @@ class ScpPage extends WikidotPage
                 array($this->getSiteName(), $this->getPageName(), $this->getId(), $e->getMessage())
             );
         }
-        return $res;        
+        return $res;
     }
-    
+
     // Load page to DB
     public function loadFromDB(KeepAliveMysqli $link, WikidotLogger $logger = null)
     {
         $res = false;
         try {
             if ($data = ScpPageDbUtils::select($link, $this, $logger)) {
-                $this->setDbValues($data);                
+                $this->setDbValues($data);
                 $this->loadRevisionsFromDb($link, $logger);
                 $this->loadTagsFromDb($link, $logger);
                 // We have to conserve memory, so instead of keeping actual votes, just keep a checksum of them
@@ -1592,20 +1592,20 @@ class ScpPage extends WikidotPage
             }
         } catch (Exception $e) {
             WikidotLogger::logFormat(
-                $logger, 
-                "Failed to load from DB page http://%s.wikidot.com/%s id=%d\nError: \"%s\"", 
+                $logger,
+                "Failed to load from DB page http://%s.wikidot.com/%s id=%d\nError: \"%s\"",
                 array($this->getSiteName(), $this->getPageName(), $this->getId(), $e->getMessage())
             );
         }
         return $res;
     }
-    
+
     // Object was modified since the last save/load from DB
     public function getModified()
     {
         return $this->modified;
-    }    
-    
+    }
+
     // Alternative title
     public function getAltTitle()
     {
@@ -1624,7 +1624,7 @@ class ScpPageList extends WikidotPageList
     {
         return 'ScpPage';
     }
-    
+
     // Load list of pages from DB
     public function loadFromDB($link, WikidotLogger $logger = null)
     {
@@ -1649,8 +1649,8 @@ class ScpPageList extends WikidotPageList
             }
         } catch (Exception $e) {
             WikidotLogger::logFormat(
-                $logger, 
-                "::: Failed. Loaded %d pages before exception\nError:\"%s\"", 
+                $logger,
+                "::: Failed. Loaded %d pages before exception\nError:\"%s\"",
                 array(count($this->pages), $e->getMessage())
             );
             throw $e;
@@ -1659,17 +1659,17 @@ class ScpPageList extends WikidotPageList
         WikidotLogger::logFormat($logger, "::: Success. Loaded %d pages in %.3f sec", array(count($this->pages), $total));
         return true;
     }
-    
+
     // Save all pages from DB
     public function saveToDB($link, WikidotLogger $logger = null)
     {
         $changed = 0;
         $saved = 0;
         $deleted = 0;
-        $startTime = microtime(true);        
+        $startTime = microtime(true);
         WikidotLogger::logFormat($logger, "::: Saving list of pages for site %s.wikidot.com from DB", array($this->getSiteName()));
         try {
-            foreach ($this->pages as $id => $page) {            
+            foreach ($this->pages as $id => $page) {
                 if ($page->getModified()) {
                     $changed++;
                     if  ($page->saveToDB($link, $logger)) {
@@ -1685,16 +1685,16 @@ class ScpPageList extends WikidotPageList
             }
         } catch (Exception $e) {
             WikidotLogger::logFormat(
-                $logger, 
-                "::: Failed. Saved %d of %d pages before failing\nError: \"%s\"", 
+                $logger,
+                "::: Failed. Saved %d of %d pages before failing\nError: \"%s\"",
                 array($saved, count($this->pages), $e->getMessage())
             );
             throw $e;
         }
         $total = microtime(true) - $startTime;
         WikidotLogger::logFormat(
-            $logger,  
-            "::: Success. Saved %d pages (%d changed, %d total) in %.3f sec", 
+            $logger,
+            "::: Success. Saved %d pages (%d changed, %d total) in %.3f sec",
             array($saved, $changed, count($this->pages), $total)
         );
         return true;
@@ -1704,7 +1704,7 @@ class ScpPageList extends WikidotPageList
 // SCP database user class
 class ScpUser extends WikidotUser
 {
-    // Inner database id 
+    // Inner database id
     private $dbId;
     // Shows if object was modified since the last save/load from DB
     private $modified = true;
@@ -1720,32 +1720,32 @@ class ScpUser extends WikidotUser
         }
         if (isset($values[ScpUserDbUtils::VIEW_WIKIDOT_NAME])) {
             $this->setProperty('wikidotName', $values[ScpUserDbUtils::VIEW_WIKIDOT_NAME]);
-        }        
+        }
         if (isset($values[ScpUserDbUtils::VIEW_DISPLAY_NAME])) {
             $this->setProperty('displayName', $values[ScpUserDbUtils::VIEW_DISPLAY_NAME]);
-        }        
+        }
         if (isset($values[ScpUserDbUtils::VIEW_DELETED])) {
             $this->setProperty('deleted', (boolean)$values[ScpUserDbUtils::VIEW_DELETED]);
         }
-    }    
-    
+    }
+
     // Informs the object that it was changed
     protected function changed()
     {
         $this->modified = true;
     }
-    
+
     /*** Public ***/
-    
+
     public function __construct()
     {
-        $args = func_get_args(); 
-        $num = func_num_args(); 
+        $args = func_get_args();
+        $num = func_num_args();
         if ($num == 1 && is_array($args[0]))
             $this->setDbValues($args[0]);
         $this->modified = false;
     }
-    
+
     // Save user to DB
     public function saveToDB(KeepAliveMysqli $link, WikidotLogger $logger = null)
     {
@@ -1767,21 +1767,21 @@ class ScpUser extends WikidotUser
                 $this->modified = false;
             } else {
                 WikidotLogger::logFormat(
-                    $logger, 
-                    "Failed to save to DB user %s (id %d)", 
+                    $logger,
+                    "Failed to save to DB user %s (id %d)",
                     array($this->getWikidotName(), $this->getId())
                 );
             }
         } catch (Exception $e) {
             WikidotLogger::logFormat(
-                $logger, 
-                "Failed to save to DB user %s (id %d)\nError: \"%s\"", 
+                $logger,
+                "Failed to save to DB user %s (id %d)\nError: \"%s\"",
                 array($this->getWikidotName(), $this->getId(), $e->getMessage())
             );
         }
         return $res;
     }
-    
+
     // Load user from DB
     public function loadFromDB(KeepAliveMysqli $link, WikidotLogger $logger = null)
     {
@@ -1793,14 +1793,14 @@ class ScpUser extends WikidotUser
             }
         } catch (Exception $e) {
             WikidotLogger::logFormat(
-                $logger, 
-                "Failed to load from DB user %s (id %d)\nError: \"%s\"", 
+                $logger,
+                "Failed to load from DB user %s (id %d)\nError: \"%s\"",
                 array($this->getWikidotName(), $this->getId(), $e->getMessage())
             );
         }
         return false;
     }
-        
+
     // Object was modified since the last save/load from DB
     public function getModified()
     {
@@ -1810,7 +1810,7 @@ class ScpUser extends WikidotUser
 
 // SCP database user list class
 class ScpUserList extends WikidotUserList
-{       
+{
     // User object class
     protected function getUserClass()
     {
@@ -1825,7 +1825,7 @@ class ScpUserList extends WikidotUserList
         $all = 0;
         $oldMembership = array();
         ScpMembershipDbUtils::select($link, $this->siteId, $oldMembership, $logger);
-        foreach($this->users as $userId => $usr) {            
+        foreach($this->users as $userId => $usr) {
             if ($usr['Date']) {
                 $all++;
                 if (isset($oldMembership[$userId])) {
@@ -1842,7 +1842,7 @@ class ScpUserList extends WikidotUserList
         }
         WikidotLogger::logFormat($logger, "Membership saved. Inserted %d, deleted %d, total members %d", array($saved, $deleted, $all));
     }
-    
+
     // Load membership from DB
     public function loadMembershipFromDB($link, WikidotLogger $logger = null)
     {
@@ -1854,8 +1854,9 @@ class ScpUserList extends WikidotUserList
         foreach($membership as $userId => $joinDate) {
             $this->users[$userId]['Date'] = $joinDate;
         }
+        //WikidotLogger::logFormat($logger, "Members loaded: %d", [count($membership)]);
     }
-    
+
     // Load list of users from DB
     public function loadFromDB($link, WikidotLogger $logger = null)
     {
@@ -1889,15 +1890,15 @@ class ScpUserList extends WikidotUserList
                 }
             }
             WikidotLogger::logFormat(
-                $logger, 
-                "::: Success. Loaded %d users (%d members) in %.3f sec :::", 
+                $logger,
+                "::: Success. Loaded %d users (%d members) in %.3f sec :::",
                 array(count($this->users), $members, $total)
             );
         } else {
             WikidotLogger::logFormat($logger, "::: Fail. Loaded %d users in %.3f sec before failing :::", array(count($this->users, $total)));
         }
     }
-    
+
     // Save list of users to DB
     public function saveToDB($link, WikidotLogger $logger = null)
     {
@@ -1913,26 +1914,35 @@ class ScpUserList extends WikidotUserList
                         $saved++;
                     }
                 }
-            }            
+            }
             $this->saveMembershipToDb($link, $logger);
         } catch (Exception $e) {
             WikidotLogger::logFormat($logger, "::: Failed. Saved %d of %d changed users\nError:\"%s\" :::", array($saved, $changed, $e->getMessage()));
             throw $e;
         }
         $total = microtime(true)-$startTime;
-        WikidotLogger::logFormat($logger, "::: Success. Saved %d of %d changed users in %.3f sec :::", array($saved, $changed, $total));        
+        WikidotLogger::logFormat($logger, "::: Success. Saved %d of %d changed users in %.3f sec :::", array($saved, $changed, $total));
         return true;
     }
-    
+
+    // Remove all membership data, but retain users
+    public function clearMembership()
+    {
+        foreach ($this->users as $userId => &$usr) {
+            $usr['Date'] = null;
+        }
+    }
+
     // Update from website list of users and membership previously loaded from DB
     public function updateFromSite(WikidotLogger $logger = null)
     {
-        $webList = new ScpUserList($this->getSiteName());        
-        $webList->retrieveSiteMembers($logger);                
+        $this->clearMembership();
+        $webList = new ScpUserList($this->getSiteName());
+        $webList->retrieveSiteMembers($logger);
         foreach ($webList->users as $userId => $usr) {
             $this->addUser($usr['User'], $usr['Date']);
-        }        
-    }    
+        }
+    }
 }
 
 ?>

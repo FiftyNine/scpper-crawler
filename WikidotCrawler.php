@@ -14,12 +14,12 @@ require_once 'phpQuery/phpQuery.php';
 if (defined('SCP_THREADS')) {
     abstract class WikidotLoggerBase extends Threaded
     {
-        
+
     }
 } else {
     abstract class WikidotLoggerBase
     {
-        
+
     }
 }
 
@@ -127,7 +127,7 @@ class WikidotStatus
     const OK = 0;
     const NOT_FOUND = 1;
     const REDIRECT = 2;
-    const FAILED = 3;    
+    const FAILED = 3;
     const UNKNOWN = 4;
 }
 
@@ -144,7 +144,7 @@ class WikidotUtils
     public static $maxAttempts = 3;
 
     /*** Private ***/
-    // Create and setup a new request 
+    // Create and setup a new request
     private static function createRequest($url)
     {
         $request = new HTTP_Request2($url, HTTP_Request2::METHOD_GET);
@@ -152,10 +152,10 @@ class WikidotUtils
         $request->setConfig('max_redirects', 2);
         $request->setConfig('strict_redirects', true);
         $request->setConfig('connect_timeout', self::$connectionTimeout);
-        $request->setConfig('timeout', self::$requestTimeout);    
+        $request->setConfig('timeout', self::$requestTimeout);
         return $request;
     }
-    
+
     // Sends request at most $maxAttempts times, returns response object
     private static function sendRequest($request, WikidotLogger $logger = null)
     {
@@ -165,7 +165,7 @@ class WikidotUtils
             while ($i < self::$maxAttempts) {
                 try {
                     $response = $request->send();
-                } catch (HTTP_Request2_Exception $e) {                    
+                } catch (HTTP_Request2_Exception $e) {
                     $i++;
                     if ($i >= self::$maxAttempts) {
                         throw $e;
@@ -187,7 +187,7 @@ class WikidotUtils
     }
 
     /*** Public ***/
-    
+
     // Searches for a pager in html and returns number of pages in it. 1 if pager is not found
     public static function extractPageCount($html)
     {
@@ -218,14 +218,14 @@ class WikidotUtils
 
     // Extract SiteId from page html
     public static function extractSiteId($html)
-    {        
+    {
         if (preg_match('/WIKIREQUEST.info.siteId = (?P<SiteId>\d+);/', $html, $matches)) {
             if (filter_var($matches['SiteId'], FILTER_VALIDATE_INT)) {
                 return (int)$matches['SiteId'];
             }
         }
     }
-    
+
     // Extract CategoryId from page html
     public static function extractCategoryId($html)
     {
@@ -238,7 +238,7 @@ class WikidotUtils
 
     // Extract PageId from page html
     public static function extractPageId($html)
-    {        
+    {
         if (preg_match('/WIKIREQUEST.info.pageId = (?P<PageId>\d+);/', $html, $matches)) {
             if (filter_var($matches['PageId'], FILTER_VALIDATE_INT)) {
                 return (int)$matches['PageId'];
@@ -248,12 +248,12 @@ class WikidotUtils
 
     // Extract PageName from page html
     public static function extractPageName($html)
-    {        
+    {
         if (preg_match('/WIKIREQUEST.info.pageUnixName = "(?P<PageName>[\w\-:]+)";/', $html, $matches)) {
             return $matches['PageName'];
         }
-    }    
-    
+    }
+
     // Iterate through all pages of a paged module, yielding html of each page
     public static function iteratePagedModule($siteName, $moduleName, $pageId, $args, $pageNumbers = null, WikidotLogger $logger = null)
     {
@@ -271,9 +271,9 @@ class WikidotUtils
                 }
             }
         }
-        foreach ($pageNumbers as $i) {         
+        foreach ($pageNumbers as $i) {
                 if (is_array($changedArgs)) {
-                $args = array_merge($args, $changedArgs);                
+                $args = array_merge($args, $changedArgs);
             }
             if (is_int($i) && $i > 0) {
                 $args['page'] = $i;
@@ -298,14 +298,14 @@ class WikidotUtils
         $args['moduleName'] = $moduleName;
         $args['pageId'] = $pageId;
         $args['page_id'] = $pageId;
-        $args['wikidot_token7'] = 'ayylmao';        
+        $args['wikidot_token7'] = 'ayylmao';
         $request->addPostParameter($args);
         $request->addCookie('wikidot_token7', 'ayylmao');
         if ($response = self::sendRequest($request, $logger)) {
             $httpStatus = $response->getStatus();
-            if ($httpStatus >= 200 && $httpStatus < 300) {                
+            if ($httpStatus >= 200 && $httpStatus < 300) {
                 $body = json_decode($response->getBody());
-                if ($body && $body->status == 'ok') {
+                if ($body && $body->status == 'ok' && isset($body->body)) {
                     $status = WikidotStatus::OK;
                     $html = $body->body;
                 } elseif ($body->status == 'not_ok') {
@@ -349,7 +349,7 @@ class WikidotUtils
         $fullUrl = sprintf('http://%s.wikidot.com/%s', $siteName, $pageName);
         $request = self::createRequest($fullUrl);
         $request->setConfig('use_brackets', true);
-        $status = WikidotStatus::FAILED;  
+        $status = WikidotStatus::FAILED;
         if ($response = self::sendRequest($request, $logger)) {
             $httpStatus = $response->getStatus();
             if ($httpStatus >= 200 && $httpStatus < 300) {
@@ -386,7 +386,7 @@ class WikidotUtils
 // Class with properties of a single revision
 class WikidotRevision
 {
-    /*** Fields ***/    
+    /*** Fields ***/
     // Wikidot revision id
     protected $revisionId;
     // Wikidot page id
@@ -399,8 +399,8 @@ class WikidotRevision
     protected $dateTime;
     // Comments
     protected $comments;
-    
-    /*** Protected ***/    
+
+    /*** Protected ***/
     // Name of class for user object for overriding in descendants
     protected function getUserClass()
     {
@@ -412,7 +412,7 @@ class WikidotRevision
     {
         $this->pageId = $pageId;
     }
-    
+
     // Extract information about revision from a html element
     public function extractFrom(phpQueryObject $rev)
     {
@@ -420,37 +420,37 @@ class WikidotRevision
         $this->revisionId = (int)$ids[0];
         $this->index = (int)substr(trim(pq('td:first', $rev)->text()), 0, -1);
         $userClass = $this->getUserClass();
-        $this->user = new $userClass(); 
+        $this->user = new $userClass();
         $this->user->extractFrom(pq('span.printuser', $rev));
         $this->dateTime = WikidotUtils::extractDateTime(pq('span.odate', $rev));
-        $this->comments = trim(pq('td:last', $rev)->text());    
+        $this->comments = trim(pq('td:last', $rev)->text());
     }
-    
-    /*** Access methods ***/    
+
+    /*** Access methods ***/
     // Wikidot revision id
     public function getId()
     {
         return $this->revisionId;
     }
-    
+
     // Wikidot page id
     public function getPageId()
     {
         return $this->pageId;
     }
-    
+
     // Zero-based index in the list of revisions of the page
     public function getIndex()
     {
         return $this->index;
     }
-    
+
     // WikidotUser object - author of the revision
     public function getUser()
     {
         return $this->user;
     }
-    
+
     // Id of the author
     public function getUserId()
     {
@@ -458,13 +458,13 @@ class WikidotRevision
             return $this->user->getId();
         }
     }
-    
+
     // Date and time revision was submitted
     public function getDateTime()
     {
         return $this->dateTime;
     }
-    
+
     // Comments
     public function getComments()
     {
@@ -505,18 +505,18 @@ class WikidotPage
     protected $retrievedUsers;
 
     /*** Private ***/
-    
+
     // Extract all properties from a loaded page HTML (not including info from modules)
     private function extractPageInfo($html, WikidotLogger $logger = null)
     {
         if (!$html)
-            return;        
+            return;
         $doc = phpQuery::newDocument($html);
-        $this->setProperty('siteId', WikidotUtils::extractSiteId($html));        
+        $this->setProperty('siteId', WikidotUtils::extractSiteId($html));
         if (!$this->getSiteId()) {
             WikidotLogger::logFormat(
-                $logger, 
-                "Failed to extract SiteId for page {http://%s.wikidot.com/%s}", 
+                $logger,
+                "Failed to extract SiteId for page {http://%s.wikidot.com/%s}",
                 array($this->getSiteName(), $this->getPageName())
             );
             return;
@@ -525,8 +525,8 @@ class WikidotPage
         $this->setProperty('categoryId', WikidotUtils::extractCategoryId($html));
         if (!$this->getCategoryId()) {
             WikidotLogger::logFormat(
-                $logger, 
-                "Failed to extract CategoryId for page {http://%s.wikidot.com/%s}", 
+                $logger,
+                "Failed to extract CategoryId for page {http://%s.wikidot.com/%s}",
                 array($this->getSiteName(), $this->getPageName())
             );
             return;
@@ -535,28 +535,28 @@ class WikidotPage
         $this->setProperty('pageId', WikidotUtils::extractPageId($html));
         if (!$this->getId()) {
             WikidotLogger::logFormat(
-                $logger, 
-                "Failed to extract PageId for page {http://%s.wikidot.com/%s}", 
+                $logger,
+                "Failed to extract PageId for page {http://%s.wikidot.com/%s}",
                 array($this->getSiteName(), $this->getPageName())
             );
             return;
         }
-        
+
         // Extract page name in case we were redirected
         $newName = WikidotUtils::extractPageName($html);
-        if ($newName != $this->getPageName()) {            
+        if ($newName != $this->getPageName()) {
             WikidotLogger::logFormat($logger, 'Redirect detected: "%s" -> "%s"', array($this->getPageName(), $newName));
             $this->setProperty('pageName', $newName);
         }
-        
+
         // Extract last revision number
-        $pageInfo = pq('div#page-info', $doc);        
+        $pageInfo = pq('div#page-info', $doc);
         if ($pageInfo && preg_match('/\d+/', $pageInfo->text(), $matches)) {
             $this->lastRevision = (int)$matches[0];
-        } /*else {            
+        } /*else {
             WikidotLogger::logFormat(
-                $logger, 
-                "Failed to extract latest revision for page {http://%s.wikidot.com/%s}", 
+                $logger,
+                "Failed to extract latest revision for page {http://%s.wikidot.com/%s}",
                 array($this->siteName, $this->pageName)
             );
         }*/
@@ -567,8 +567,8 @@ class WikidotPage
             $this->setProperty('title', trim($titleElem->html()));
         } else {
             WikidotLogger::logFormat(
-                $logger, 
-                "Failed to extract title for page {http://%s.wikidot.com/%s}", 
+                $logger,
+                "Failed to extract title for page {http://%s.wikidot.com/%s}",
                 array($this->getSiteName(), $this->getPageName())
             );
             return;
@@ -584,8 +584,8 @@ class WikidotPage
             $this->setProperty('tags', $tags);
         } else {
             WikidotLogger::logFormat(
-                $logger, 
-                "Failed to extract tags for page {http://%s.wikidot.com/%s}", 
+                $logger,
+                "Failed to extract tags for page {http://%s.wikidot.com/%s}",
                 array($this->getSiteName(), $this->getPageName())
             );
             return;
@@ -593,7 +593,7 @@ class WikidotPage
         $doc->unloadDocument();
         return true;
     }
-    
+
     /*** Protected ***/
     // Name of class for revision object
     protected function getRevisionClass()
@@ -612,14 +612,14 @@ class WikidotPage
     {
         // Do nothing
     }
-    
+
     // Add revision to the list
     protected function addRevision(WikidotRevision $revision)
     {
         $this->revisions[$revision->getIndex()] = $revision;
         $this->changed();
     }
-    
+
     // Set value by property name
     protected function setProperty($name, $value)
     {
@@ -645,7 +645,7 @@ class WikidotPage
             $this->source = $value;
             $this->changed($name);
         } elseif ($name == "tags" && is_array($value)) {
-            asort($value);            
+            asort($value);
             if (!is_array($this->tags)) {
                 $this->tags = array();
             }
@@ -670,12 +670,12 @@ class WikidotPage
         }
         if (!preg_match('/^[\w\-:]+$/', $pageName)) {
             throw new Exception('Invalid wikidot page name');
-        }    
+        }
         $this->siteName = $siteName;
         $this->pageName = $pageName;
         $this->retrievedUsers = array();
     }
-    
+
     // Request a source module from wikidot and extract source text from it
     public function retrievePageSource(WikidotLogger $logger = null)
     {
@@ -693,8 +693,8 @@ class WikidotPage
         }
         if (!$res) {
             WikidotLogger::logFormat(
-                $logger, 
-                "Failed to retrieve source for page {http://%s.wikidot.com/%s}", 
+                $logger,
+                "Failed to retrieve source for page {http://%s.wikidot.com/%s}",
                 array($this->getSiteName(), $this->getPageName())
             );
         }
@@ -726,8 +726,8 @@ class WikidotPage
         }
         if (!$res) {
             WikidotLogger::logFormat(
-                $logger, 
-                "Failed to retrieve votes for page {http://%s.wikidot.com/%s}", 
+                $logger,
+                "Failed to retrieve votes for page {http://%s.wikidot.com/%s}",
                 array($this->getSiteName(), $this->getPageName())
             );
         }
@@ -750,20 +750,20 @@ class WikidotPage
             foreach (pq('tr[id^=\'revision-row\']', $doc) as $revElem) {
                 $revClass = $this->getRevisionClass();
                 $rev = new $revClass($this->getId());
-                $rev->extractFrom(pq($revElem));                
+                $rev->extractFrom(pq($revElem));
                 $revisions[$rev->getIndex()] = $rev;
                 $this->retrievedUsers[$rev->getUserId()] = $rev->getUser();
                 $res = true;
             }
             $doc->unloadDocument();
-        }                
-        if ($res) {            
+        }
+        if ($res) {
             $this->setProperty("revisions", array_reverse($revisions));
             $this->lastRevision = $revisions[0]->getIndex();
         } else {
             WikidotLogger::logFormat(
-                $logger, 
-                "Failed to retrieve votes for page {http://%s.wikidot.com/%s}", 
+                $logger,
+                "Failed to retrieve votes for page {http://%s.wikidot.com/%s}",
                 array($this->getSiteName(), $this->getPageName())
             );
         }
@@ -772,12 +772,12 @@ class WikidotPage
 
     // Retrieve only html of the page itself and extract information from it
     public function retrievePageInfo(WikidotLogger $logger = null)
-    {       
+    {
         $html = null;
         try {
-            $this->status = WikidotUtils::requestPage($this->getSiteName(), $this->getPageName(), $html, $logger);            
+            $this->status = WikidotUtils::requestPage($this->getSiteName(), $this->getPageName(), $html, $logger);
             if ($this->status != WikidotStatus::OK || !$html) {
-                return false;            
+                return false;
             }
             if (!$this->extractPageInfo($html, $logger)) {
                 return false;
@@ -831,7 +831,7 @@ class WikidotPage
         $this->setProperty('title', $page->title);
         $this->setProperty('categoryId', $page->categoryId);
         $this->setProperty('source', $page->source);
-        $this->setProperty('tags', $page->tags);            
+        $this->setProperty('tags', $page->tags);
         $this->setProperty('votes', $page->votes);
         $this->setProperty('revisions', $page->revisions);
         if (isset($page->retrievedUsers)) {
@@ -855,19 +855,19 @@ class WikidotPage
     {
         return $this->siteId;
     }
-    
+
     // Wikidot category id
     public function getCategoryId()
     {
         return $this->categoryId;
-    }    
-    
+    }
+
     // Wikidot site name
     public function getSiteName()
     {
         return $this->siteName;
-    }    
-    
+    }
+
     // Wikidot page name
     public function getPageName()
     {
@@ -903,7 +903,7 @@ class WikidotPage
     {
         return $this->revisions;
     }
-    
+
     // Last revision number
     public function getLastRevision()
     {
@@ -913,7 +913,7 @@ class WikidotPage
             return $this->lastRevision;
         }
     }
-        
+
     // Users retrieved along with modules (UserId => WikidotUser)
     public function getRetrievedUsers() {
         if (!is_array($this->retrievedUsers)) {
@@ -921,7 +921,7 @@ class WikidotPage
         }
         return $this->retrievedUsers;
     }
-    
+
     // Retrieval status
     public function getStatus() {
         return $this->status;
@@ -934,7 +934,7 @@ class WikidotPageList
     /*** Fields ***/
     // Wikidot name of the site
     private $siteName;
-    // Array of (PageId => WikidotPage)    
+    // Array of (PageId => WikidotPage)
     protected $pages;
     // Array of (PageName)
     protected $failedPages;
@@ -968,15 +968,15 @@ class WikidotPageList
         } else {
             $this->pages[$pageId] = $page;
         }
-    }    
-    
+    }
+
     // Remove a page from the list
     public function removePage($pageId)
     {
         unset($this->pages[$pageId]);
     }
-    
-    // Returns list of pages without retrieving pages itself 
+
+    // Returns list of pages without retrieving pages itself
     public function fetchListOfPages($criteria, WikidotLogger $logger = null)
     {
         $res = array();
@@ -1008,7 +1008,7 @@ class WikidotPageList
                     foreach (pq('div.list-pages-item a', $doc) as $page) {
                         $pageName = substr(pq($page)->attr('href'), 1);
                         if ($pageName) {
-                            $pageClass = $this->getPageClass(); 
+                            $pageClass = $this->getPageClass();
                             $page = new $pageClass($this->siteName, $pageName);
                             $res[] = $page;
                         }
@@ -1035,7 +1035,7 @@ class WikidotPageList
         }
         return $res;
     }
-    
+
     // Add pages fitting specified criteria
     public function retrievePages($criteria, $limit = 0, WikidotLogger $logger = null)
     {
@@ -1087,7 +1087,7 @@ class WikidotPageList
         }
         return $res;
     }
-    
+
     /**
      * Try to (re)load a list of pages
      * @param array(string) $list
@@ -1103,7 +1103,7 @@ class WikidotPageList
             $pageName = $list[$i];
             $page = $this->getPageByName($pageName);
             if (!$page) {
-                $pageClass = $this->getPageClass(); 
+                $pageClass = $this->getPageClass();
                 $page = new $pageClass($this->getSiteName(), $pageName);
             }
             if ($retrieveAll) {
@@ -1119,7 +1119,7 @@ class WikidotPageList
         }
         WikidotLogger::logFormat($logger, "Retrieved %d of %d requested pages", array($success, $success+count($list)));
     }
-    
+
     // Retry loading failed pages
     public function retryFailed($retrieveAll, WikidotLogger $logger = null)
     {
@@ -1129,10 +1129,10 @@ class WikidotPageList
         $this->retrieveList($this->failedPages, $retrieveAll, $logger);
         // WikidotLogger::logFormat($logger, "Retrieved %d of %d earlier failed pages", array($success, $success+count($this->failedPages)));
     }
-    
+
     /*** Access methods ***/
     // Return a page by its WikidotId
-    public function getPageById($id) 
+    public function getPageById($id)
     {
         if (isset($this->pages[$id])) {
             return $this->pages[$id];
@@ -1140,9 +1140,9 @@ class WikidotPageList
             return null;
         }
     }
-    
+
     // Return a page by its wikidot name
-    public function getPageByName($name) 
+    public function getPageByName($name)
     {
         foreach ($this->pages as $page) {
             if ($page->getPageName() == $name) {
@@ -1151,7 +1151,7 @@ class WikidotPageList
         }
         return null;
     }
-    
+
     // Generator function allowing to iterate through all pages
     public function iteratePages()
     {
@@ -1165,7 +1165,7 @@ class WikidotPageList
     {
         return $this->siteName;
     }
-    
+
     // If list has pages it failed to retrieve
     public function hasFailed()
     {
@@ -1202,16 +1202,16 @@ class WikidotUser
             $this->wikidotName = $value;
             $this->changed();
         }
-    }    
-    
+    }
+
     // Informs the object that it was changed
     protected function changed()
     {
         // Do nothing
     }
-    
+
     /*** Public ***/
-    
+
     // Extract information about user from a html element
     public function extractFrom(phpQueryObject $elem)
     {
@@ -1238,12 +1238,12 @@ class WikidotUser
                 $this->setProperty('deleted', true);
                 $this->setProperty('wikidotName', 'anonymous-user');
                 $this->setProperty('displayName', 'Anonymous User');
-                return true;                
+                return true;
             }
         }
         return false;
     }
-    
+
     // Add information from a different object of the same class and $id
     public function updateFrom(WikidotUser $user)
     {
@@ -1260,7 +1260,7 @@ class WikidotUser
             }
         }
     }
-        
+
     /*** Access methods ***/
     // Returns id
     public function getId()
@@ -1273,13 +1273,13 @@ class WikidotUser
     {
         return $this->deleted;
     }
-    
+
     // Displayed name, e.g. "Kain Pathos Crow"
     public function getDisplayName()
     {
         return $this->displayName;
     }
-    
+
     // Wikidot inner name used in links, e.g. "kain-pathos-crow"
     public function getWikidotName()
     {
@@ -1304,12 +1304,32 @@ class WikidotUserList
     {
         return 'WikidotUser';
     }
-    
+
     /*** Public ***/
     public function __construct($siteName)
     {
         $this->siteName = $siteName;
         $this->users = array();
+    }
+
+
+    // Add members from a MemberList page
+    public function addMembersFromListPage($html, WikidotLogger $logger = null)
+    {
+        $success = 0;
+        $doc = phpQuery::newDocument($html);
+        foreach (pq('tr') as $row) {
+            $userClass = $this->getUserClass();
+            $user = new $userClass();
+            if ($user->extractFrom(pq('span.printuser', $row))) {
+                $joinDate = WikidotUtils::extractDateTime(pq('span.odate', $row));
+                //$user->setJoinDate($siteId, $joinDate);
+                $this->addUser($user, $joinDate);
+                $success++;
+            }
+        }
+        $doc->unloadDocument();
+        return $success;
     }
 
     // Load members list for a specified site and add all users from it
@@ -1325,37 +1345,36 @@ class WikidotUserList
             $this->siteId = WikidotUtils::extractSiteId($membersHtml);
             if ($membersHtml && $this->siteId) {
                 $pageCount = WikidotUtils::extractPageCount($membersHtml);
-                $memberList = WikidotUtils::iteratePagedModule($this->siteName, 'membership/MembersListModule', 0, array(), range(1, $pageCount), $logger);
+                $args = array(
+                    'per_page' => 1000000,
+                );
+                $totaltime = microtime(true);
+                $processingtime = 0;
+                $memberList = WikidotUtils::iteratePagedModule($this->siteName, 'membership/MembersListModule', 0, $args, range(1, $pageCount), $logger);
                 foreach ($memberList as $mlPage) {
+                    $time_start = microtime(true);
                     if ($mlPage) {
-                        $doc = phpQuery::newDocument($mlPage);
-                        foreach (pq('tr') as $row) {
-                            $userClass = $this->getUserClass();
-                            $user = new $userClass();
-                            if ($user->extractFrom(pq('span.printuser', $row))) {
-                                $joinDate = WikidotUtils::extractDateTime(pq('span.odate', $row));
-                                //$user->setJoinDate($siteId, $joinDate);
-                                $this->addUser($user, $joinDate);
-                                $success++;
-                            }
-                        }
-                        $doc->unloadDocument();
-                        if ($success % 1000 == 0) {
+                        $loaded = $this->addMembersFromListPage($mlPage, $logger);
+                        if (($success + $loaded) % 1000 > $success % 1000) {
                             WikidotLogger::logFormat(
-                                $logger, 
-                                "%d members retrieved [%d kb used]...", 
-                                array($success, round(memory_get_usage()/1024))
+                                $logger,
+                                "%d members retrieved [%d kb used]...",
+                                array(($success+$loaded) % 1000 * 1000, round(memory_get_usage()/1024))
                             );
                         }
+                        $success = $success + $loaded;
                             // return;
                     }
                     else {
                         $res = false;
                         break;
                     }
+                    $time_end = microtime(true);
+                    $processingtime += $time_end - $time_start;
 					// debug
 //					sleep(1);
                 }
+                echo 'Total time : '.(microtime(true) - $totaltime).' sec., processing time : '.$processingtime.'\n';
             }
         } catch (Exception $e) {
             WikidotLogger::logFormat($logger, "Error: \"%s\"", array($e->getMessage()));
@@ -1392,7 +1411,7 @@ class WikidotUserList
             $this->users[$user->getId()] = array('User' => $user, 'Date' => $date);
         }
     }
-    
+
     // Add users associated with page
     public function addUsersFromPage(WikidotPage $page)
     {
@@ -1400,13 +1419,13 @@ class WikidotUserList
             $this->addUser($user);
         }
     }
-    
+
     // Wikidot name of site
     public function getSiteName()
     {
         return $this->siteName;
     }
-    
+
     // Get user by it's WikidotId
     public function getUserById($id)
     {
@@ -1416,7 +1435,7 @@ class WikidotUserList
             return null;
         }
     }
-    
+
     // Get user by display name
     public function getUserByDisplayName($name)
     {
@@ -1426,6 +1445,11 @@ class WikidotUserList
             }
         }
         return null;
+    }
+
+    public function getUsers()
+    {
+        return $this->users;
     }
 }
 
