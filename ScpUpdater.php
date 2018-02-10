@@ -130,11 +130,17 @@ class ScpSiteUtils
             $users->loadFromDB($link, $logger);
         }
         $saved = 0;
+        $nonDefault = 0;
         foreach ($list as $pageName => $overrideTypes) {
-            $page = $pages->getPageByName($pageName);
-            if (!$page) {
-                WikidotLogger::logFormat($logger, 'Overriden page "%s" not found', array($pageName));
+            if (strpos($pageName, ':') !== FALSE) {
+                $nonDefault++;
                 continue;
+            } else {
+                $page = $pages->getPageByName($pageName);
+                if (!$page) {
+                    WikidotLogger::logFormat($logger, 'Overriden page "%s" not found', array($pageName));
+                    continue;
+                }
             }
             foreach ($overrideTypes as $type => $overrides) {
                 $ovUsers = array();
@@ -169,8 +175,8 @@ class ScpSiteUtils
                 }
                 $saved++;
             }
-        }
-        WikidotLogger::logFormat($logger, "::: Author overrides updates, %d entries saved (%d total) :::", array($saved, count($list)));
+        }        
+        WikidotLogger::logFormat($logger, "::: Author overrides updates, %d entries saved, %d non-defaults skipped (%d total) :::", array($saved, $nonDefault, count($list)));
     }
 
     //
