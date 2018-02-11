@@ -1344,13 +1344,13 @@ class WikidotUserList
             WikidotUtils::requestPage($this->siteName, 'system:members', $membersHtml, $logger);
             $this->siteId = WikidotUtils::extractSiteId($membersHtml);
             if ($membersHtml && $this->siteId) {
-                $pageCount = WikidotUtils::extractPageCount($membersHtml);
+                // $pageCount = WikidotUtils::extractPageCount($membersHtml);
                 $args = array(
                     'per_page' => 1000000,
                 );
                 $totaltime = microtime(true);
                 $processingtime = 0;
-                $memberList = WikidotUtils::iteratePagedModule($this->siteName, 'membership/MembersListModule', 0, $args, range(1, $pageCount), $logger);
+                $memberList = WikidotUtils::iteratePagedModule($this->siteName, 'membership/MembersListModule', 0, $args, null /*range(1, $pageCount)*/, $logger);
                 foreach ($memberList as $mlPage) {
                     $time_start = microtime(true);
                     if ($mlPage) {

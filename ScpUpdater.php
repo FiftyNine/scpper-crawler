@@ -469,10 +469,11 @@ class ScpUsersUpdater
             $this->users->loadFromDB($this->link, $this->logger);
         }
         $membersHtml = null;
-        $this->failed = (WikidotUtils::requestPage($this->siteName, 'system:members', $membersHtml, $this->logger) !== WikidotStatus::OK);
+        //$this->failed = (WikidotUtils::requestPage($this->siteName, 'system:members', $membersHtml, $this->logger) !== WikidotStatus::OK);
+        $this->failed = (WikidotUtils::requestModule($this->siteName, 'membership/MembersListModule', 0, [], $membersHtml, $this->logger) !== WikidotStatus::OK);
         // Get a list of pages from the site (only names)
         $this->pageCount = 0;
-        $this->total = 0;
+        $this->total = 0;        
         if (!$this->failed) {
             if ($membersHtml) {
                 $this->pageCount = WikidotUtils::extractPageCount($membersHtml);
