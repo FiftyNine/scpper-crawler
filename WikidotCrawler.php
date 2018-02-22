@@ -564,7 +564,7 @@ class WikidotPage
         // Extract page title
         $titleElem = pq('div#page-title', $doc);
         if ($titleElem) {
-            $this->setProperty('title', trim($titleElem->html()));
+            $this->setProperty('title', trim($titleElem->text()));
         } else {
             WikidotLogger::logFormat(
                 $logger,
@@ -579,7 +579,7 @@ class WikidotPage
         $tagsElem = pq('div.page-tags', $doc);
         if ($tagsElem) {
             foreach (pq('a', $tagsElem) as $tagElem) {
-                $tags[] = pq($tagElem)->html();
+                $tags[] = pq($tagElem)->text();
             }
             $this->setProperty('tags', $tags);
         } else {
