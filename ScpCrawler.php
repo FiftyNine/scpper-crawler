@@ -1407,10 +1407,13 @@ class ScpPage extends WikidotPage
             if (ScpVoteDbUtils::select($link, $this->getId(), $oldVotes, $logger)) {
                 foreach($votes as $userId => $vote) {
                     unset($oldVotes[$userId]);
+                    // INSERT OR UPDATE
                     $res = $res && ScpVoteDbUtils::insert($link, $this->getId(), $userId, $vote, $logger);
                 }
                 foreach ($oldVotes as $userId => $vote) {
-                    $res = $res && ScpVoteDbUtils::delete($link, $this->getId(), $userId, $logger);
+                    // INSERT OR UPDATE
+                    // Instead of deleting old vote we change it to neutral vote
+                    $res = $res && ScpVoteDbUtils::insert($link, $this->getId(), $userId, 0, $logger);
                 }
             }
         }
