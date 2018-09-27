@@ -202,9 +202,9 @@ class ScpSiteUtils
             if (preg_match($pattern, $pageName)) {
                 $altTitle = substr($row->textContent, strlen($a->text())+3);
                 $page = $pages->getPageByName($pageName);
-                if ($page) {
+                if ($page) {                    
                     $page->setProperty('altTitle', $altTitle);
-                    if ($page->getModified()) {
+                    if ($page->getModified()) {                        
                         $page->saveToDB($link, $logger);
                         $i++;
                     }
@@ -231,11 +231,287 @@ class ScpSiteUtils
         $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki', 'scp-series-2', '/scp-\d{3,4}/i', $logger);
         $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki', 'scp-series-3', '/scp-\d{3,4}/i', $logger);
         $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki', 'scp-series-4', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki', 'scp-series-5', '/scp-\d{3,4}/i', $logger);
         $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki', 'joke-scps', '/scp-.+/i', $logger);
         $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki', 'archived-scps', '/scp-\d{3,4}-arc/i', $logger);
         $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki', 'scp-ex', '/scp-\d{3,4}-ex/i', $logger);
         WikidotLogger::logFormat($logger, 'Updated alternative titles for %d pages', [$total]);
     }
+    
+    public static function updateAltTitlesRu(
+        KeepAliveMysqli $link,
+        ScpPageList $pages = null,
+        WikidotLogger $logger = null
+    )
+    {
+        if (!$pages) {
+            $pages = new ScpPageList('scp-ru');
+            $pages->loadFromDB($link, $logger);
+        }
+        $total = 0;
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-ru', 'scp-list', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-ru', 'scp-list-2', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-ru', 'scp-list-3', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-ru', 'scp-list-4', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-ru', 'scp-list-5', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-ru', 'scp-list-ru', '/scp-\d{3,4}-ru/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-ru', 'scp-list-fr', '/scp-\d{3,4}-fr/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-ru', 'scp-list-jp', '/scp-\d{3,4}-jp/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-ru', 'scp-list-es', '/scp-\d{3,4}-es/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-ru', 'scp-list-pl', '/scp-\d{3,4}-pl/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-ru', 'scp-list-de', '/scp-\d{3,4}-de/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-ru', 'scp-list-j', '/scp-.+/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-ru', 'archive', '/scp-\d{3,4}-.+/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-ru', 'explained-list', '/scp-\d{3,4}-.+/i', $logger);
+        WikidotLogger::logFormat($logger, 'Updated alternative titles for %d pages', [$total]);
+    }
+    
+    public static function updateAltTitlesKr(
+        KeepAliveMysqli $link,
+        ScpPageList $pages = null,
+        WikidotLogger $logger = null
+    )
+    {
+        if (!$pages) {
+            $pages = new ScpPageList('scp-kr');
+            $pages->loadFromDB($link, $logger);
+        }
+        $total = 0;
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-kr', 'scp-series', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-kr', 'scp-series-2', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-kr', 'scp-series-3', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-kr', 'scp-series-4', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-kr', 'scp-series-5', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-kr', 'scp-series-ko', '/scp-\d{3,4}-ko/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-kr', 'joke-scps', '/scp-.+/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-kr', 'joke-scps-ko', '/scp-.+/i', $logger);        
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-kr', 'scp-ex', '/scp-\d{3,4}-ex/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-kr', 'scp-ko-ex', '/scp-\d{3,4}-ko-ex/i', $logger);
+        WikidotLogger::logFormat($logger, 'Updated alternative titles for %d pages', [$total]);
+    }
+    
+    public static function updateAltTitlesCn(
+        KeepAliveMysqli $link,
+        ScpPageList $pages = null,
+        WikidotLogger $logger = null
+    )
+    {
+        if (!$pages) {
+            $pages = new ScpPageList('scp-wiki-cn');
+            $pages->loadFromDB($link, $logger);
+        }
+        $total = 0;
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki-cn', 'scp-series', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki-cn', 'scp-series-2', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki-cn', 'scp-series-3', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki-cn', 'scp-series-4', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki-cn', 'scp-series-5', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki-cn', 'scp-series-cn', '/scp-cn-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki-cn', 'joke-scps', '/scp-.+/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki-cn', 'joke-scps-cn', '/scp-cn-.+/i', $logger);        
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki-cn', 'scp-ex', '/scp-\d{3,4}-ex/i', $logger);
+        WikidotLogger::logFormat($logger, 'Updated alternative titles for %d pages', [$total]);
+    }
+    
+    public static function updateAltTitlesFr(
+        KeepAliveMysqli $link,
+        ScpPageList $pages = null,
+        WikidotLogger $logger = null
+    )
+    {
+        if (!$pages) {
+            $pages = new ScpPageList('fondationscp');
+            $pages->loadFromDB($link, $logger);
+        }
+        $total = 0;
+        $total += self::updateAltTitlesFromPage($link, $pages, 'fondationscp', 'scp-series', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'fondationscp', 'scp-series-2', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'fondationscp', 'scp-series-3', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'fondationscp', 'scp-series-4', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'fondationscp', 'scp-series-5', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'fondationscp', 'liste-francaise', '/scp-\d{3,4}-fr/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'fondationscp', 'joke-scps', '/scp-.+/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'fondationscp', 'scps-humoristiques-francais', '/scp-.+/i', $logger);        
+        $total += self::updateAltTitlesFromPage($link, $pages, 'fondationscp', 'scp-ex', '/scp-\d{3,4}-ex/i', $logger);
+        WikidotLogger::logFormat($logger, 'Updated alternative titles for %d pages', [$total]);
+    }
+    
+    public static function updateAltTitlesPl(
+        KeepAliveMysqli $link,
+        ScpPageList $pages = null,
+        WikidotLogger $logger = null
+    )
+    {
+        if (!$pages) {
+            $pages = new ScpPageList('scp-pl');
+            $pages->loadFromDB($link, $logger);
+        }
+        $total = 0;
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-pl', 'lista-eng', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-pl', 'lista-eng-2', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-pl', 'lista-eng-3', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-pl', 'lista-eng-4', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-pl', 'lista-eng-5', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-pl', 'lista-pl', '/scp-pl-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-pl', 'joke', '/scp-.+/i', $logger);
+        WikidotLogger::logFormat($logger, 'Updated alternative titles for %d pages', [$total]);
+    }    
+
+    public static function updateAltTitlesEs(
+        KeepAliveMysqli $link,
+        ScpPageList $pages = null,
+        WikidotLogger $logger = null
+    )
+    {
+        if (!$pages) {
+            $pages = new ScpPageList('lafundacionscp');
+            $pages->loadFromDB($link, $logger);
+        }
+        $total = 0;
+        $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'serie-scp-1', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'serie-scp-2', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'serie-scp-3', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'serie-scp-4', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'serie-scp-5', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'serie-scp-es', '/scp-es-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'serie-scp-es-2', '/scp-es-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'scps-humoristicos', '/scp-.+/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'scps-exs', '/scp-\d{3,4}-ex/i', $logger);
+        WikidotLogger::logFormat($logger, 'Updated alternative titles for %d pages', [$total]);
+    }
+
+    
+    public static function updateAltTitlesTh(
+        KeepAliveMysqli $link,
+        ScpPageList $pages = null,
+        WikidotLogger $logger = null
+    )
+    {
+        if (!$pages) {
+            $pages = new ScpPageList('scp-th');
+            $pages->loadFromDB($link, $logger);
+        }
+        $total = 0;
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-th', 'scp-series', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-th', 'scp-series-2', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-th', 'scp-series-3', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-th', 'scp-series-4', '/scp-\d{3,4}/i', $logger);       
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-th', 'scp-series-th', '/scp-\d{3,4}-th/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-th', 'joke-scps', '/scp-.+/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-th', 'joke-scps-th', '/scp-.+/i', $logger);
+        WikidotLogger::logFormat($logger, 'Updated alternative titles for %d pages', [$total]);
+    }    
+        
+    public static function updateAltTitlesJp(
+        KeepAliveMysqli $link,
+        ScpPageList $pages = null,
+        WikidotLogger $logger = null
+    )
+    {
+        if (!$pages) {
+            $pages = new ScpPageList('scp-jp');
+            $pages->loadFromDB($link, $logger);
+        }
+        $total = 0;
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-jp', 'scp-series', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-jp', 'scp-series-2', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-jp', 'scp-series-3', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-jp', 'scp-series-4', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-jp', 'scp-series-5', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-jp', 'scp-series-jp', '/scp-\d{3,4}-jp/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-jp', 'scp-series-jp-2', '/scp-\d{3,4}-jp/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-jp', 'joke-scps', '/scp-.+/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-jp', 'joke-scps-jp', '/scp-.+/i', $logger);        
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-jp', 'scp-ex', '/scp-\d{3,4}-ex/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-jp', 'scp-jp-ex', '/scp-\d{3,4}-jp-ex/i', $logger);
+        WikidotLogger::logFormat($logger, 'Updated alternative titles for %d pages', [$total]);
+    }    
+    
+    public static function updateAltTitlesDe(
+        KeepAliveMysqli $link,
+        ScpPageList $pages = null,
+        WikidotLogger $logger = null
+    )
+    {
+        if (!$pages) {
+            $pages = new ScpPageList('scp-wiki-de');
+            $pages->loadFromDB($link, $logger);
+        }
+        $total = 0;
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki-de', 'scp-series', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki-de', 'scp-series-2', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki-de', 'scp-series-3', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki-de', 'scp-series-4', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki-de', 'scp-series-5', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki-de', 'scp-de', '/scp-\d{3,4}-de/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki-de', 'joke-scps', '/scp-.+/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-wiki-de', 'scp-ex', '/scp-\d{3,4}-ex/i', $logger);
+        WikidotLogger::logFormat($logger, 'Updated alternative titles for %d pages', [$total]);
+    }        
+
+    public static function updateAltTitlesIt(
+        KeepAliveMysqli $link,
+        ScpPageList $pages = null,
+        WikidotLogger $logger = null
+    )
+    {
+        if (!$pages) {
+            $pages = new ScpPageList('fondazionescp');
+            $pages->loadFromDB($link, $logger);
+        }
+        $total = 0;
+        $total += self::updateAltTitlesFromPage($link, $pages, 'fondazionescp', 'scp-series', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'fondazionescp', 'scp-series-2', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'fondazionescp', 'scp-series-3', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'fondazionescp', 'scp-series-4', '/scp-\d{3,4}/i', $logger);       
+        $total += self::updateAltTitlesFromPage($link, $pages, 'fondazionescp', 'scp-it-serie-i', '/scp-\d{3,4}-it/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'fondazionescp', 'joke-scps', '/scp-.+/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'fondazionescp', 'scp-ex', '/scp-\d{3,4}-ex/i', $logger);
+        WikidotLogger::logFormat($logger, 'Updated alternative titles for %d pages', [$total]);
+    }            
+
+    public static function updateAltTitlesUa(
+        KeepAliveMysqli $link,
+        ScpPageList $pages = null,
+        WikidotLogger $logger = null
+    )
+    {
+        if (!$pages) {
+            $pages = new ScpPageList('scp-ukrainian');
+            $pages->loadFromDB($link, $logger);
+        }
+        $total = 0;
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-ukrainian', 'scp-series', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-ukrainian', 'scp-series-2', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-ukrainian', 'scp-series-3', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-ukrainian', 'scp-series-4', '/scp-\d{3,4}/i', $logger);       
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-ukrainian', 'scp-series-ua', '/scp-\d{3,4}-ua/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-ukrainian', 'scp-list-j', '/scp-.+/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-ukrainian', 'explained-list', '/scp-\d{3,4}-ex/i', $logger);
+        WikidotLogger::logFormat($logger, 'Updated alternative titles for %d pages', [$total]);
+    }  
+
+    public static function updateAltTitlesPt(
+        KeepAliveMysqli $link,
+        ScpPageList $pages = null,
+        WikidotLogger $logger = null
+    )
+    {
+        if (!$pages) {
+            $pages = new ScpPageList('scp-pt-br');
+            $pages->loadFromDB($link, $logger);
+        }
+        $total = 0;
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-pt-br', 'scp-series', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-pt-br', 'scp-series-2', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-pt-br', 'scp-series-3', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-pt-br', 'scp-series-4', '/scp-\d{3,4}/i', $logger);       
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-pt-br', 'scp-series-5', '/scp-\d{3,4}/i', $logger);               
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-pt-br', 'series-1-pt', '/scp-\d{3,4}-pt/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-pt-br', 'joke-scps', '/scp-.+/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'scp-pt-br', 'scp-ex', '/scp-\d{3,4}-ex/i', $logger);
+        WikidotLogger::logFormat($logger, 'Updated alternative titles for %d pages', [$total]);
+    }    
 }
 
 class ScpPagesUpdater
@@ -556,8 +832,49 @@ class ScpSiteUpdater
 
     protected function updateAlternativeTitles($siteName, KeepAliveMysqli $link, ScpPageList $pages = null, WikidotLogger $logger = null)
     {
-        if ($siteName == 'scp-wiki') {
-            ScpSiteUtils::updateAltTitlesEn($link, $pages, $logger);
+        switch ($siteName) {
+            case 'scp-wiki':
+                ScpSiteUtils::updateAltTitlesEn($link, $pages, $logger);
+                break;
+            case 'scp-ru':
+                // Alt title is a part of title
+                // ScpSiteUtils::updateAltTitlesRu($link, $pages, $logger);
+                break;            
+            case 'scp-kr':
+                ScpSiteUtils::updateAltTitlesKr($link, $pages, $logger);
+                break;            
+            case 'scp-jp':
+                ScpSiteUtils::updateAltTitlesJp($link, $pages, $logger);
+                break;            
+            case 'fondazionescp':
+                ScpSiteUtils::updateAltTitlesIt($link, $pages, $logger);
+                break;            
+            case 'fondationscp':
+                ScpSiteUtils::updateAltTitlesFr($link, $pages, $logger);
+                break;            
+            case 'lafundacionscp':
+                ScpSiteUtils::updateAltTitlesEs($link, $pages, $logger);
+                break;            
+            case 'scp-th':
+                ScpSiteUtils::updateAltTitlesTh($link, $pages, $logger);
+                break;            
+            case 'scp-pl':
+                // Doesn't work due to formatting
+                // ScpSiteUtils::updateAltTitlesPl($link, $pages, $logger);
+                break;
+            case 'scp-wiki-de':
+                ScpSiteUtils::updateAltTitlesDe($link, $pages, $logger);
+                break;            
+            case 'scp-wiki-cn':
+                ScpSiteUtils::updateAltTitlesCn($link, $pages, $logger);
+                break;            
+            case 'scp-ukrainian':
+                ScpSiteUtils::updateAltTitlesUa($link, $pages, $logger);
+                break;            
+            case 'scp-pt-br':
+                // Doesn't work due to formatting
+                // ScpSiteUtils::updateAltTitlesPt($link, $pages, $logger);
+                break;            
         }
     }
 
