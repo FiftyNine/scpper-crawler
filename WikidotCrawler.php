@@ -716,7 +716,14 @@ class WikidotPage
                 if ($user->extractFrom(pq($userElem))) {
                     $this->retrievedUsers[$user->getId()] = $user;
                     $voteElem = pq($userElem)->next();
-                    $vote = ((trim(pq($voteElem)->text())) == '+')?1:-1;
+                    $voteText = trim(pq($voteElem)->text());
+                    if ($voteText === '+') {
+                        $vote = 1;
+                    } else if ($voteText === '-') {
+                        $vote = -1;
+                    } else {
+                        continue;
+                    }
                     $votes[(string)$user->getId()] = $vote;
                 }
             }
@@ -934,6 +941,8 @@ class WikidotPageList
     /*** Fields ***/
     // Wikidot name of the site
     private $siteName;
+    // Array of (CategoryId => Name)
+    private $categories;
     // Array of (PageId => WikidotPage)
     protected $pages;
     // Array of (PageName)
@@ -955,6 +964,7 @@ class WikidotPageList
         $this->siteName = $siteName;
         $this->pages = array();
         $this->failedPages = array();
+        $this->categories = array();
     }
 
     // Add page to the list or update existing page
@@ -976,47 +986,89 @@ class WikidotPageList
         unset($this->pages[$pageId]);
     }
 
-    // Returns list of pages without retrieving pages itself
+    // Retrieves list of categories and stores in the respective field
+    public function retrieveCategories(WikidotLogger $logger = null)
+    {
+        $startTime = microtime(true);
+        WikidotLogger::logFormat($logger, "::: Retrieving list of pages from %s.wikidot.com :::", array($this->siteName));
+        try {
+            $html = null;
+            WikidotUtils::requestModule($this->siteName, 'list/WikiCategoriesModule', 0, [], $html, $logger);
+            if ($html) {
+                $doc = phpQuery::newDocument($html);
+                foreach (pq('div', $doc) as $category) {
+                    $catName = pq('h3', $category)->text();
+                    $catId = (int)substr(pq('a', $category)->attr('id'), strlen('category-pages-toggler-'));
+                    if ($catName && $catId) {
+                        $this->categories[$catId] = $catName;
+                    }
+                }
+                $doc->unloadDocument();
+            } else {
+                $res = false;
+            }            
+        } catch (Exception $e) {
+            WikidotLogger::logFormat($logger, "Error: \"%s\"", array($e->getMessage()));
+            throw $e;
+        }
+        $totalTime = (microtime(true) - $startTime);
+        if ($res) {
+            WikidotLogger::logFormat(
+                $logger,
+                "::: Finished. Retrieved: %d. Time: %.3f sec :::",
+                array(count($res), count($res), $totalTime)
+            );
+        } else {
+            WikidotLogger::log($logger, "::: Failed :::");
+        }        
+    }
+    
+    // Returns list of pages
     public function fetchListOfPages($criteria, WikidotLogger $logger = null)
     {
         $res = array();
         $startTime = microtime(true);
+        $catNames = array_values($this->categories);
+        if ($catNames === []) {
+            $catNames[] = '_default';
+        }
         WikidotLogger::logFormat($logger, "::: Retrieving list of pages from %s.wikidot.com :::", array($this->siteName));
         try {
-            $defaults = array(
-                'offset' => 0,
-                'page' => 1,
-                'category' => '_default',
-                'order' => 'title',
-                'module_body' => '%%title_linked%%',
-                'perPage' => 250);
-            // ToDo: Validate criteria
-            if (is_array($criteria)) {
-                $args = array_merge($defaults, $criteria);
-            } else {
-                $args = $defaults;
-            }
-            $i = 0;
-            $count = 0;
-            $list = WikidotUtils::iteratePagedModule($this->siteName, 'list/ListPagesModule', 0, $args, null, $logger);
-            while ($list->valid()) {
-                $listPage = $list->current();
-                $args['offset'] = (++$i)*250;
-                $list->send($args);
-                if ($listPage) {
-                    $doc = phpQuery::newDocument($listPage);
-                    foreach (pq('div.list-pages-item a', $doc) as $page) {
-                        $pageName = substr(pq($page)->attr('href'), 1);
-                        if ($pageName) {
-                            $pageClass = $this->getPageClass();
-                            $page = new $pageClass($this->siteName, $pageName);
-                            $res[] = $page;
-                        }
-                    }
-                    $doc->unloadDocument();
+            foreach ($catNames as $category) {
+                $defaults = array(
+                    'offset' => 0,
+                    'page' => 1,
+                    'order' => 'title',
+                    'module_body' => '%%title_linked%%',
+                    'perPage' => 250);
+                // ToDo: Validate criteria
+                if (is_array($criteria)) {
+                    $args = array_merge($defaults, $criteria);
                 } else {
-                    $res = false;
-                    break;
+                    $args = $defaults;
+                }
+                $args['category'] = $category;
+                $i = 0;
+                $list = WikidotUtils::iteratePagedModule($this->siteName, 'list/ListPagesModule', 0, $args, null, $logger);
+                while ($list->valid()) {
+                    $listPage = $list->current();
+                    $args['offset'] = (++$i)*250;
+                    $list->send($args);
+                    if ($listPage) {
+                        $doc = phpQuery::newDocument($listPage);
+                        foreach (pq('div.list-pages-item a', $doc) as $page) {
+                            $pageName = substr(pq($page)->attr('href'), 1);
+                            if ($pageName) {
+                                $pageClass = $this->getPageClass();
+                                $page = new $pageClass($this->siteName, $pageName);
+                                $res[] = $page;
+                            }
+                        }
+                        $doc->unloadDocument();
+                    } else {
+                        $res = false;
+                        break;
+                    }
                 }
             }
         } catch (Exception $e) {
@@ -1034,7 +1086,7 @@ class WikidotPageList
             WikidotLogger::log($logger, "::: Failed :::");
         }
         return $res;
-    }
+    }    
 
     // Add pages fitting specified criteria
     public function retrievePages($criteria, $limit = 0, WikidotLogger $logger = null)
@@ -1166,6 +1218,12 @@ class WikidotPageList
         return $this->siteName;
     }
 
+    // List of categories
+    public function getCategories()
+    {
+        return $this->categories;
+    }    
+    
     // If list has pages it failed to retrieve
     public function hasFailed()
     {

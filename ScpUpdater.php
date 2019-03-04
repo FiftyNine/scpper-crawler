@@ -518,7 +518,9 @@ class ScpPagesUpdater
 {
     // Database link
     protected $link;
-    // Logger
+    // Id of the wiki
+    protected $siteId;
+    // Logger    
     protected $logger;
     // List of pages from the database
     protected $pages;
@@ -539,9 +541,10 @@ class ScpPagesUpdater
     // Array of names to keep track of pages we failed to load from the site
     protected $failedPages = array();
 
-    public function __construct(KeepAliveMysqli $link, ScpPageList $pages, WikidotLogger $logger = null, ScpUserList $users = null)
+    public function __construct(KeepAliveMysqli $link, $siteId, ScpPageList $pages, WikidotLogger $logger = null, ScpUserList $users = null)
     {
         $this->link = $link;
+        $this->siteId = $siteId;
         $this->pages = $pages;
         $this->users = $users;
         $this->logger = $logger;
@@ -574,6 +577,10 @@ class ScpPagesUpdater
         // Let's retrieve all pages from DB
         $this->pages->loadFromDB($this->link, $this->logger);
         WikidotLogger::logFormat($this->logger, "After loading from DB: %d", array(memory_get_usage()));
+        $this->pages->retrieveCategories($this->logger);
+        foreach ($this->pages->getCategories() as $id => $name) {
+            ScpCategoryDbUtils::insert($this->link, $this->siteId, $id, $name, $this->logger);
+        }                
         WikidotLogger::logFormat($this->logger, "Before retrieving list: %d", array(memory_get_usage()));
         // Get a list of pages from the site (only names)
         $this->sitePages = $this->pages->fetchListOfPages(null, $this->logger);
@@ -925,7 +932,7 @@ class ScpSiteUpdater
         //$ul->saveToDB($link, $logger);
         $pl = new ScpPageList($siteName);
         $updaterClass = $this->getPagesUpdaterClass();
-        $pageUpdater = new $updaterClass($link, $pl, $logger, $ul);
+        $pageUpdater = new $updaterClass($link, $siteId, $pl, $logger, $ul);
         $pageUpdater->go();
         unset($pageUpdater);
         $pl = new ScpPageList($siteName);
