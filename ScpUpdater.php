@@ -829,12 +829,19 @@ class ScpSiteUpdater
     {
         if ($siteName == 'scp-wiki') {
             ScpSiteUtils::updateStatusOverridesEn($link, $pages, $users, $logger);
-            WikidotLogger::log($logger, "Updating page kinds...");
+        }        
+        WikidotLogger::log($logger, "Updating page kinds...");
+        if ($siteName == 'scp-wiki') {
             $link->query("CALL FILL_PAGE_KINDS_EN()");
         } else if ($siteName == 'scp-ru') {
-            WikidotLogger::log($logger, "Updating page kinds...");
             $link->query("CALL FILL_PAGE_KINDS_RU()");
-        }
+        } else if ($siteName == 'fondationscp') {
+            $link->query("CALL FILL_PAGE_KINDS_FR()");
+        } else if ($siteName == 'scp-wiki-de') {
+            $link->query("CALL FILL_PAGE_KINDS_DE()");
+        } else if ($siteName == 'scp-kr') {
+            $link->query("CALL FILL_PAGE_KINDS_KO()");
+        }        
     }
 
     protected function updateAlternativeTitles($siteName, KeepAliveMysqli $link, ScpPageList $pages = null, WikidotLogger $logger = null)

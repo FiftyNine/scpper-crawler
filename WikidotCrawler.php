@@ -747,7 +747,7 @@ class WikidotPage
         $revisions = array();
         $res = false;
         $args = array(
-            // Here's hoping nobody has that much revisions on a single page
+            // Here's hoping nobody has that many revisions on a single page
             'perpage' => 1000000,
             'options' => '{"all":true}'
         );
