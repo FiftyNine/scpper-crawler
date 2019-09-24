@@ -616,9 +616,9 @@ class ScpPageDbUtils
     const VIEW_ALT_TITLE = 'AltTitle';
     // Text of SQL requests
     const SELECT_TEXT = 'SELECT __Id, SiteId, SiteName, PageName, Title, AltTitle, CategoryId, Source FROM view_pages WHERE PageId = ?';
-    const SELECT_ID_TEXT = 'SELECT __Id FROM view_pages WHERE PageId = ?';
+    const SELECT_ID_TEXT = 'SELECT __Id FROM view_pages_all WHERE PageId = ?';
     const INSERT_TEXT = 'INSERT INTO pages (SiteId, WikidotId, CategoryId, Name, Title, AltTitle, Source) VALUES (?, ?, ?, ?, ?, ?, ?)';
-    const UPDATE_TEXT = 'UPDATE pages SET CategoryId = ?, Name = ?, Title = ?, AltTitle = ?, Source = COALESCE(?, Source) WHERE WikidotId = ?';
+    const UPDATE_TEXT = 'UPDATE pages SET CategoryId = ?, Name = ?, Title = ?, AltTitle = ?, Source = COALESCE(?, Source), Deleted = 0 WHERE WikidotId = ?';
     // const DELETE_TEXT = 'DELETE FROM pages WHERE WikidotId = ?';
     // Now we store deleted pages and only mark them as deleted
     const DELETE_TEXT = 'UPDATE pages SET Deleted = 1 WHERE WikidotId = ?';
