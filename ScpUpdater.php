@@ -368,11 +368,11 @@ class ScpSiteUtils
             $pages->loadFromDB($link, $logger);
         }
         $total = 0;
-        $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'serie-scp-1', '/scp-\d{3,4}/i', $logger);
-        $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'serie-scp-2', '/scp-\d{3,4}/i', $logger);
-        $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'serie-scp-3', '/scp-\d{3,4}/i', $logger);
-        $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'serie-scp-4', '/scp-\d{3,4}/i', $logger);
-        $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'serie-scp-5', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'scp-series', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'scp-series-2', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'scp-series-3', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'scp-series-4', '/scp-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'scp-series-5', '/scp-\d{3,4}/i', $logger);
         $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'serie-scp-es', '/scp-es-\d{3,4}/i', $logger);
         $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'serie-scp-es-2', '/scp-es-\d{3,4}/i', $logger);
         $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'scps-humoristicos', '/scp-.+/i', $logger);
