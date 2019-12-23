@@ -724,7 +724,16 @@ class WikidotPage
                     } else {
                         continue;
                     }
-                    $votes[(string)$user->getId()] = $vote;
+                    $key = (string)$user->getId();
+                    // In the unlikely (but somehow possible) case where
+                    // there are two different votes from the same user
+                    // on the same page at the same time, we will
+                    // count only the positive vote to avoid votes leapfrogging 
+                    // each other every other update
+                    if (array_key_exists($key, $votes)) {
+                        $vote = 1;
+                    }
+                    $votes[$key] = $vote;                    
                 }
             }
             $this->setProperty('votes', $votes);
