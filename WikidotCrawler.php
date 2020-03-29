@@ -1506,12 +1506,15 @@ class WikidotUserList
     // Get user by display name
     public function getUserByDisplayName($name)
     {
+        $result = null;
         foreach ($this->users as $user) {
             if ($user['User']->getDisplayName() == $name) {
-                return $user['User'];
+                if (!$result || $result->getDeleted() && !$user['User']->getDeleted()) {
+                    $result = $user['User'];
+                }                
             }
         }
-        return null;
+        return $result;
     }
 
     public function getUsers()
