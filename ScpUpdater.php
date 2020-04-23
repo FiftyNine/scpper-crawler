@@ -11,83 +11,16 @@ class ScpSiteUtils
     public static function setContributors(KeepAliveMysqli $link, ScpPage $page, $role, $users)
     {
         $userIds = array();
-        foreach ($users as $user) {
-            $userIds[] = (string)($user->getId());
+        foreach ($users as $userId) {
+            $userIds[] = (string)$userId;
         }
         $link->query(vsprintf("CALL SET_CONTRIBUTORS(%d, %d, '%s')", array($page->getId(), $role, implode(',', $userIds))));
-    }
-
-    // Get information about authorship overrides from Alexandra's override page and write it to DB
-    public static function updateStatusOverridesEn_Old(
-        KeepAliveMysqli $link,
-        ScpPageList $pages = null,
-        ScpUserList $users = null,
-        WikidotLogger $logger = null
-    )
-    {
-        $html = null;
-        WikidotUtils::requestPage('05command', 'alexandra-rewrite', $html, $logger);
-        if (!$html) {
-            return;
-        }
-        $doc = phpQuery::newDocument($html);
-        $table = pq('div#page-content table.wiki-content-table', $doc);
-        if (!$table) {
-            return;
-        }
-        $list = array();
-        $i = 0;
-        foreach (pq('tr', $table) as $row) {
-            if ($i > 0) {
-                $pgName = strtolower(pq('td:first', $row)->text());
-                $list[$pgName] = pq('td:last', $row)->text();
-            }
-            $i++;
-        }
-        $doc->unloadDocument();
-        if (!$pages) {
-            $pages = new ScpPageList('scp-wiki');
-            $pages->loadFromDB($link, $logger);
-        }
-        if (!$users) {
-            $users = new ScpUserList('scp-wiki');
-            $users->loadFromDB($link, $logger);
-        }
-        $saved = 0;
-        foreach ($list as $pageName => $override) {
-            $ovStr = explode(':', $override);
-            $page = $pages->getPageByName($pageName);
-            $userName = ($ovStr[0] == '') ? $ovStr[2] : $ovStr[0];
-            if ($userName == 'Unknown Author') {
-                $user = $users->getUserById(-1);
-            } else {
-                $user = $users->getUserByDisplayName($userName);
-            }
-            $status = ($ovStr[0] == '') ? $ovStr[1] : 'rewrite';
-            if ($page && $user) {
-                if ($status == 'rewrite') {
-                    self::setContributors($link, $page, self::ROLE_REWRITER, array($user));
-                } else {
-                    self::setContributors($link, $page, self::ROLE_AUTHOR, array($user));
-                }
-                $saved++;
-            } else {
-                if (!$page) {
-                    WikidotLogger::logFormat($logger, 'Overriden page "%s" not found', array($pageName));
-                }
-                if (!$user) {
-                    WikidotLogger::logFormat($logger, 'Overriden author "%s" not found', array($userName));
-                }
-            }
-        }
-        WikidotLogger::logFormat($logger, "::: Author overrides updates, %d entries saved (%d total) :::", array($saved, count($list)));
     }
 
     // Get information about authorship overrides from attribution page and write it to DB
     public static function updateStatusOverridesEn(
         KeepAliveMysqli $link,
         ScpPageList $pages = null,
-        ScpUserList $users = null,
         WikidotLogger $logger = null
     )
     {
@@ -125,10 +58,6 @@ class ScpSiteUtils
             $pages = new ScpPageList('scp-wiki');
             $pages->loadFromDB($link, $logger);
         }
-        if (!$users) {
-            $users = new ScpUserList('scp-wiki');
-            $users->loadFromDB($link, $logger);
-        }
         $saved = 0;
         $nonDefault = 0;
         foreach ($list as $pageName => $overrideTypes) {
@@ -146,15 +75,15 @@ class ScpSiteUtils
                 $ovUsers = array();
                 foreach ($overrides as $override) {
                     if ($override['user'] == 'Unknown Author') {
-                        $user = $users->getUserById(-1);
+                        $userId = -1;
                     } else {
-                        $user = $users->getUserByDisplayName($override['user']);
+                        $userId = ScpUserDbUtils::selectUserIdByDisplayName($link, $override['user'], $logger);
                     }
-                    if (!$user) {
+                    if (!$userId) {
                         WikidotLogger::logFormat($logger, 'Overriden author "%s" not found', array($override['user']));
                         continue;
                     } else {
-                        $ovUsers[] = $user;
+                        $ovUsers[] = $userId;
                     }
                 }
                 if (count($ovUsers) == 0) {
@@ -539,7 +468,7 @@ class ScpPagesUpdater
     // List of pages from the database
     protected $pages;
     // List of users on the site
-    protected $users;
+    //protected $users;
     // Total number of pages on the site
     protected $total;
     // Number of succesfully processed pages
@@ -555,12 +484,12 @@ class ScpPagesUpdater
     // Array of names to keep track of pages we failed to load from the site
     protected $failedPages = array();
 
-    public function __construct(KeepAliveMysqli $link, $siteId, ScpPageList $pages, WikidotLogger $logger = null, ScpUserList $users = null)
+    public function __construct(KeepAliveMysqli $link, $siteId, ScpPageList $pages, WikidotLogger $logger = null/*, ScpUserList $users = null*/)
     {
         $this->link = $link;
         $this->siteId = $siteId;
         $this->pages = $pages;
-        $this->users = $users;
+        //$this->users = $users;
         $this->logger = $logger;
     }
 
@@ -568,12 +497,17 @@ class ScpPagesUpdater
     protected function saveUpdatingPage(ScpPage $page)
     {
         // But first, we need to add to DB users that aren't there yet
-        foreach ($page->getRetrievedUsers() as $userId => $user) {
+/*        foreach ($page->getRetrievedUsers() as $userId => $user) {
             $this->users->addUser($user);
             $listUser = $this->users->getUserById($userId);
             if ($listUser->getModified()) {
                 $listUser->saveToDB($this->link, $this->logger);
             }
+        }*/
+        foreach ($page->getRetrievedUsers() as $userId => $user) {
+            if ($user->getDeleted()) {
+                $user->saveToDB($this->link, $this->logger);
+            }                
         }
         // Now save the page
         return $page->saveToDB($this->link, $this->logger);
@@ -582,11 +516,11 @@ class ScpPagesUpdater
     //
     protected function prepareUpdate()
     {
-        if (!$this->users) {
+/*        if (!$this->users) {
             // Prepare list of users. We need it to add users retrieved along with pages.
             $this->users = new ScpUserList($this->pages->siteName);
             $this->users->loadFromDB($this->link, $this->logger);
-        }
+        }*/
         WikidotLogger::logFormat($this->logger, "Before loading from DB: %d", array(memory_get_usage()));
         // Let's retrieve all pages from DB
         $this->pages->loadFromDB($this->link, $this->logger);
@@ -739,10 +673,7 @@ class ScpUsersUpdater
     protected $logger;
     // Site
     protected $siteName;
-    // List of users to update
-    protected $users;
-    // List of users retrieved from site
-    protected $webList;
+    protected $siteId;
     // Number of pages in the list of members
     protected $pageCount = 0;
     // Number of users
@@ -750,21 +681,16 @@ class ScpUsersUpdater
     // Couldn't load entire list or just some pages. Do not save
     protected $failed = false;
 
-    public function __construct(KeepAliveMysqli $link, $siteName, ScpUserList $users, WikidotLogger $logger = null)
+    public function __construct(KeepAliveMysqli $link, $siteName, $siteId, WikidotLogger $logger = null)
     {
         $this->link = $link;
         $this->siteName = $siteName;
-        $this->users = $users;
+        $this->siteId = $siteId;
         $this->logger = $logger;
     }
 
     protected function prepareUpdate()
     {
-        if (!$this->users) {
-            // Prepare list of users. We need it to add users retrieved along with pages.
-            $this->users = new ScpUserList($this->siteName);
-            $this->users->loadFromDB($this->link, $this->logger);
-        }
         $membersHtml = null;
         //$this->failed = (WikidotUtils::requestPage($this->siteName, 'system:members', $membersHtml, $this->logger) !== WikidotStatus::OK);
         $this->failed = (WikidotUtils::requestModule($this->siteName, 'membership/MembersListModule', 0, [], $membersHtml, $this->logger) !== WikidotStatus::OK);
@@ -775,9 +701,8 @@ class ScpUsersUpdater
             if ($membersHtml) {
                 $this->pageCount = WikidotUtils::extractPageCount($membersHtml);
             }
-            $this->webList = new ScpUserList($this->siteName);
-            $this->users->clearMembership();
         }
+        ScpMembershipDbUtils::start($this->link, $this->siteId, $this->logger);
     }
 
     // Retrieve all the users
@@ -786,7 +711,8 @@ class ScpUsersUpdater
         $memberList = WikidotUtils::iteratePagedModule($this->siteName, 'membership/MembersListModule', 0, [], range(1, $this->pageCount), $this->logger);
         foreach ($memberList as $mlPage) {
             if ($mlPage) {
-                $this->total += $this->webList->addMembersFromListPage($mlPage, $this->logger);
+                $users = new ScpUserList($this->siteName, $this->siteId);
+                $this->total += $users->addMembersFromListPage($mlPage, $this->logger);
                 if ($this->total % 1000 == 0) {
                     WikidotLogger::logFormat(
                         $this->logger,
@@ -794,6 +720,9 @@ class ScpUsersUpdater
                         array($this->total, round(memory_get_usage()/1024))
                     );
                 }
+                $users->saveToDB($this->link, $this->logger, false);
+                $users->saveMembershipToDBGreedy($this->link, $this->logger);
+                unset($users);
             } else {
                 $this->failed = true;
                 return;
@@ -805,11 +734,11 @@ class ScpUsersUpdater
     protected function finishUpdate()
     {
         if (!$this->failed) {
-            $users = $this->webList->getUsers();
+/*            $users = $this->webList->getUsers();
             foreach ($users as $userId => $usr) {
                 $this->users->addUser($usr['User'], $usr['Date']);
             }
-            $this->users->saveToDB($this->link, $this->logger);
+            $this->users->saveToDB($this->link, $this->logger);*/
         } else {
             WikidotLogger::log($this->logger, "ERROR: Failed to update list of members!");
         }
@@ -839,10 +768,10 @@ class ScpSiteUpdater
         return 'ScpPagesUpdater';
     }
 
-    protected function updateStatusOverrides($siteName, KeepAliveMysqli $link, ScpPageList $pages = null, ScpUserList $users = null, WikidotLogger $logger = null)
+    protected function updateStatusOverrides($siteName, KeepAliveMysqli $link, ScpPageList $pages = null, WikidotLogger $logger = null)
     {
         if ($siteName == 'scp-wiki') {
-            ScpSiteUtils::updateStatusOverridesEn($link, $pages, $users, $logger);
+            ScpSiteUtils::updateStatusOverridesEn($link, $pages, $logger);
         }        
         WikidotLogger::log($logger, "Updating page kinds...");
         if ($siteName == 'scp-wiki') {
@@ -943,22 +872,23 @@ class ScpSiteUpdater
             WikidotLogger::log($logger, "Error: Failed to retrieve site id from database.");
             return;
         }
-        $ul = new ScpUserList($siteName);
-        $ul->loadFromDB($link, $logger);
+        //$ul = new ScpUserList($siteName);
+        //$ul->loadFromDB($link, $logger);
+        $link->begin_transaction();
         $updaterClass = $this->getUsersUpdaterClass();
-        $userUpdater = new $updaterClass($link, $siteName, $ul, $logger);
+        $userUpdater = new $updaterClass($link, $siteName, $siteId, $logger);
         $userUpdater->go();
         unset($userUpdater);
         //$ul->updateFromSite($logger);
         //$ul->saveToDB($link, $logger);
         $pl = new ScpPageList($siteName);
         $updaterClass = $this->getPagesUpdaterClass();
-        $pageUpdater = new $updaterClass($link, $siteId, $pl, $logger, $ul);
+        $pageUpdater = new $updaterClass($link, $siteId, $pl, $logger);
         $pageUpdater->go();
         unset($pageUpdater);
         $pl = new ScpPageList($siteName);
         $pl->loadFromDB($link, $logger);
-        $this->updateStatusOverrides($siteName, $link, $pl, $ul, $logger);
+        $this->updateStatusOverrides($siteName, $link, $pl, $logger);
         WikidotLogger::log($logger, "Updating alternative titles...");
         $this->updateAlternativeTitles($siteName, $link, $pl, $logger);
         $link->query("UPDATE sites SET LastUpdate = Now() WHERE WikidotId = '$siteId'");
@@ -969,6 +899,7 @@ class ScpSiteUpdater
         WikidotLogger::log($logger, "Updating site stats...");
         $link->query("CALL UPDATE_SITE_STATS('$siteId')");
         WikidotLogger::logFormat($logger, "Peak memory usage: %d kb", array(round(memory_get_peak_usage()/1024)));
-        WikidotLogger::logFormat($logger, "======= Update %s.wikidot.com has finished =======", array($siteName));
+        WikidotLogger::logFormat($logger, "======= Update %s.wikidot.com has finished =======", array($siteName));        
+        $link->commit();        
     }
 }

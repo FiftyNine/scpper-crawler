@@ -1373,9 +1373,10 @@ class WikidotUserList
     }
 
     /*** Public ***/
-    public function __construct($siteName)
+    public function __construct($siteName, $siteId = null)
     {
         $this->siteName = $siteName;
+        $this->siteId = $siteId;
         $this->users = array();
     }
 

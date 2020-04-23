@@ -123,7 +123,10 @@ class ScpMultithreadUsersUpdater extends ScpUsersUpdater
                 {
                     if ($task->isComplete()) {
                         if ($task->isSuccess()) {
-                            $loaded = $this->webList->addMembersFromListPage($task->getPageHtml(), $this->logger);
+                            $users = new ScpUserList($this->siteName, $this->siteId);
+                            $loaded = $users->addMembersFromListPage($task->getPageHtml(), $this->logger);                            
+                            $users->saveToDb($this->link, $this->logger, false);
+                            $users->saveMembershipToDBGreedy($this->link, $this->logger);
                             if (intdiv($this->total + $loaded, 1000) > intdiv($this->total, 1000)) {
                                 WikidotLogger::logFormat(
                                     $this->logger,
@@ -131,6 +134,7 @@ class ScpMultithreadUsersUpdater extends ScpUsersUpdater
                                     [intdiv($this->total + $loaded, 1000)*1000, round(memory_get_usage()/1024)]
                                 );
                             }
+                            unset($users);
                             $this->total += $loaded;
                         } else {
                             $failed = true;

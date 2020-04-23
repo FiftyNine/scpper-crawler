@@ -907,13 +907,16 @@ class ScpMembershipDbUtils
     const VIEW_JOIN_DATE = 'JoinDate';
     // Text of SQL requests
     const SELECT_TEXT = 'SELECT UserId, UNIX_TIMESTAMP(JoinDate) FROM membership WHERE SiteId = ?';
+    const SELECT_USER_TEXT = 'SELECT UNIX_TIMESTAMP(JoinDate) FROM membership WHERE SiteId = ? AND UserId = ?';
     const INSERT_TEXT = 'INSERT INTO membership (SiteId, UserId, JoinDate) VALUES (?, ?, FROM_UNIXTIME(?)) ON DUPLICATE KEY UPDATE Aborted = 0';
     const DELETE_TEXT = 'UPDATE membership SET Aborted = 1 WHERE SiteId = ? and UserId = ?';
+    const START_TEXT = 'UPDATE membership SET Aborted = 1 WHERE SiteId = ?';
     /*** Fields ***/
     // Last connection used to access DB with this class
     private static $lastLink = null;
     // Prepared statements for interacting with DB
     private static $selectStmnt = null;
+    private static $selectUserStmnt = null;
     private static $insertStmnt = null;
     private static $deleteStmnt = null;
 
@@ -939,6 +942,7 @@ class ScpMembershipDbUtils
     // Close and null all statements
     private static function clear() {
         self::closeStatement(self::$selectStmnt);
+        self::closeStatement(self::$selectUserStmnt);
         self::closeStatement(self::$insertStmnt);
         self::closeStatement(self::$deleteStmnt);
     }
@@ -989,10 +993,51 @@ class ScpMembershipDbUtils
         return $res;
     }
 
+    // Select membership data from DB by site id and return it as associative array (UserId => JoinDate)
+    public static function selectUser(KeepAliveMysqli $link, $siteId, $userId, WikidotLogger $logger = null)
+    {
+        $res = false;
+        try {
+            self::needStatements($link);
+            if (!self::$selectUserStmnt) {
+                self::$selectUserStmnt = $link->prepare(self::SELECT_USER_TEXT);
+                if (!self::$selectUserStmnt) {
+                    WikidotLogger::logFormat(
+                        $logger,
+                        "Failed to prepare SELECT user statement for membership\nError: \"%s\"",
+                        array($link->error())
+                    );
+                    return false;
+                }
+            }
+            self::$selectUserStmnt->bind_param('dd', $siteId, $userId);
+            if (self::$selectUserStmnt->execute()) {
+                self::$selectUserStmnt->bind_result($joinTimestamp);
+                while (self::$selectUserStmnt->fetch()) {
+                    $res = new DateTime();
+                    $res->setTimestamp($joinTimestamp);
+                }
+                self::$selectUserStmnt->reset();
+            } else {
+                WikidotLogger::logFormat(
+                    $logger,
+                    "Failed to SELECT membership for user %d on site %d\nMysqli error: \"%s\"",
+                    array($userId, $siteId, self::$selectUserStmnt->error)
+                );
+            }
+        } catch (Exception $e) {
+            WikidotLogger::logFormat(
+                $logger,
+                "Failed to SELECT membership for user %d on site %d\nError: \"%s\"",
+                array($userId, $siteId, $e->getMessage())
+            );
+        }
+        return $res;
+    }    
+    
     // Insert new record into membership table in DB
     public static function insert(KeepAliveMysqli $link, $siteId, $userId, $joinDate, WikidotLogger $logger = null)
     {
-
         $res = false;
         try {
             self::needStatements($link);
@@ -1008,7 +1053,7 @@ class ScpMembershipDbUtils
                 }
             }
             $timestamp = $joinDate->getTimestamp();
-            self::$insertStmnt->bind_param('ddd', $siteId, $userId, $timestamp);
+            self::$insertStmnt->bind_param('ddd', $siteId, $userId, $timestamp);            
             $res = self::$insertStmnt->execute();
             if (!$res) {
                 WikidotLogger::logFormat(
@@ -1030,7 +1075,6 @@ class ScpMembershipDbUtils
     // Delete existing DB record by siteId and userId
     public static function delete(KeepAliveMysqli $link, $siteId, $userId, WikidotLogger $logger = null)
     {
-
         $res = false;
         try {
             self::needStatements($link);
@@ -1063,6 +1107,39 @@ class ScpMembershipDbUtils
         }
         return $res;
     }
+    
+    // Prepare for an update
+    public static function start(KeepAliveMysqli $link, $siteId, WikidotLogger $logger = null)
+    {
+        $res = false;
+        try {        
+            $stmt = $link->prepare(self::START_TEXT);
+            if (!$stmt) {
+                WikidotLogger::logFormat(
+                    $logger,
+                    "Failed to prepare START statement for membership\nError: \"%s\"",
+                    array($link->error())
+                );
+                return false;
+            }
+            $stmt->bind_param('d', $siteId);
+            $res = $stmt->execute();
+            if (!$res) {
+                WikidotLogger::logFormat(
+                    $logger,
+                    "Failed to START update for site %d\nMysqli error: \"%s\"",
+                    array($siteId, $stmt->error)
+                );
+            }
+        } catch (Exception $e) {
+            WikidotLogger::logFormat(
+                $logger,
+                "Failed to START update for site %d\nError: \"%s\"",
+                array($siteId, $e->getMessage())
+            );
+        }           
+        return $res;
+    }   
 }
 
 // Static utility class for saving/loading users from DB
@@ -1080,6 +1157,7 @@ class ScpUserDbUtils
     // Text of SQL requests
     const SELECT_TEXT = 'SELECT __Id, WikidotName, DisplayName, Deleted FROM view_users WHERE UserId = ?';
     const SELECT_ID_TEXT = 'SELECT __Id FROM view_users WHERE UserId = ?';
+    const SELECT_USERID_BY_DISPLAYNAME_TEXT = 'SELECT UserId FROM view_users WHERE DisplayName = ?';
     const INSERT_TEXT = 'INSERT INTO users (WikidotId, WikidotName, DisplayName, Deleted) VALUES (?, ?, ?, ?)';
     const UPDATE_TEXT = 'UPDATE users SET WikidotName = ?, DisplayName = ?, Deleted = ? WHERE WikidotId = ?';
     /*** Fields ***/
@@ -1088,6 +1166,7 @@ class ScpUserDbUtils
     // Prepared statements for interacting with DB
     private static $selectStmnt = null;
     private static $selectIdStmnt = null;
+    private static $selectUserIdByDisplayNameStmnt = null;
     private static $insertStmnt = null;
     private static $updateStmnt = null;
 
@@ -1114,6 +1193,7 @@ class ScpUserDbUtils
     private static function clear() {
         self::closeStatement(self::$selectStmnt);
         self::closeStatement(self::$selectIdStmnt);
+        self::closeStatement(self::$selectUserIdByDisplayNameStmnt);
         self::closeStatement(self::$insertStmnt);
         self::closeStatement(self::$updateStmnt);
     }
@@ -1205,6 +1285,45 @@ class ScpUserDbUtils
         return $res;
     }
 
+    // Select user dbId from DB by user wikidot id and return it
+    public static function selectUserIdByDisplayName(KeepAliveMysqli $link, $displayName, WikidotLogger $logger = null)
+    {
+        $res = false;
+        try {
+            self::needStatements($link);
+            if (!self::$selectUserIdByDisplayNameStmnt) {
+                self::$selectUserIdByDisplayNameStmnt = $link->prepare(self::SELECT_USERID_BY_DISPLAYNAME_TEXT);
+                if (!self::$selectUserIdByDisplayNameStmnt) {
+                    WikidotLogger::logFormat(
+                        $logger,
+                        "Failed to prepare SELECT USERID statement for user\nError: \"%s\"",
+                        array($link->error())
+                    );
+                    return false;
+                }
+            }
+            self::$selectUserIdByDisplayNameStmnt->bind_param('s', $displayName);
+            if (self::$selectUserIdByDisplayNameStmnt->execute()) {
+                self::$selectUserIdByDisplayNameStmnt->bind_result($res);
+                self::$selectUserIdByDisplayNameStmnt->fetch();
+                self::$selectUserIdByDisplayNameStmnt->reset();
+            } else {
+                WikidotLogger::logFormat(
+                    $logger,
+                    "Failed to SELECT USERID for %s \nMysqli error: \"%s\"",
+                    array($displayName, self::$selectUserIdByDisplayNameStmnt->error)
+                );
+            }
+        } catch (Exception $e) {
+            WikidotLogger::logFormat(
+                $logger,
+                "Failed to SELECT USERID for %s \nError: \"%s\"",
+                array($displayName, $e->getMessage())
+            );
+        }
+        return $res;
+    }    
+    
     // Insert new record into users table in DB
     public static function insert(KeepAliveMysqli $link, ScpUser $user, WikidotLogger $logger = null)
     {
@@ -1319,7 +1438,6 @@ class ScpRevision extends WikidotRevision
     // Save revision to DB
     public function saveToDB(KeepAliveMysqli $link, WikidotLogger $logger = null)
     {
-
         $res = false;
         try {
             if (!$this->dbId) {
@@ -1327,6 +1445,11 @@ class ScpRevision extends WikidotRevision
             }
             if (!$this->dbId) {
                 $res = ScpRevisionDbUtils::insert($link, $this, $logger);
+                // Perhaps the user is not in the DB
+                if (!$res) {
+                    $res = ScpUserDbUtils::insert($link, $this->getUser(), $logger)
+                        && ScpRevisionDbUtils::insert($link, $this, $logger);
+                }
                 if ($res) {
                     $this->dbId = $link->insert_id();
                 }
@@ -1453,7 +1576,7 @@ class ScpPage extends WikidotPage
         $revs = $this->getRevisions();
         if (isset($revs)) {
             foreach ($revs as $rev) {
-                $res = $res && $rev->saveToDB($link, $logger);
+                $res = $rev->saveToDB($link, $logger);
             }
         }
         return $res;
@@ -1473,6 +1596,17 @@ class ScpPage extends WikidotPage
         return $res;
     }
 
+    private function saveVoteToDb(KeepAliveMysqli $link, $userId, $vote, WikidotLogger $logger = null)
+    {
+        $res = ScpVoteDbUtils::insert($link, $this->getId(), $userId, $vote, $logger);
+        // Saving failed, potentially because the user is not saved
+        if (!$res && array_key_exists($userId, $this->retrievedUsers)) {
+            $res = ScpUserDbUtils::insert($link, $this->retrievedUsers[$userId], $logger)
+                && ScpVoteDbUtils::insert($link, $this->getId(), $userId, $vote, $logger);
+        }
+        return $res;
+    }
+    
     // Save votes to DB
     private function saveVotesToDb(KeepAliveMysqli $link, WikidotLogger $logger = null)
     {
@@ -1484,12 +1618,12 @@ class ScpPage extends WikidotPage
                 foreach($votes as $userId => $vote) {
                     unset($oldVotes[$userId]);
                     // INSERT OR UPDATE
-                    $res = $res && ScpVoteDbUtils::insert($link, $this->getId(), $userId, $vote, $logger);
+                    $res = $res && $this->saveVoteToDb($link, $userId, $vote, $logger);
                 }
                 foreach ($oldVotes as $userId => $vote) {
                     // INSERT OR UPDATE
                     // Instead of deleting old vote we change it to neutral vote
-                    $res = $res && ScpVoteDbUtils::insert($link, $this->getId(), $userId, 0, $logger);
+                    $res = $res && $this->saveVoteToDb($link, $userId, 0, $logger);
                 }
             }
         }
@@ -1899,30 +2033,34 @@ class ScpUserList extends WikidotUserList
     }
 
     // Save list of users to DB
-    public function saveMembershipToDB($link, WikidotLogger $logger = null)
+    public function saveMembershipToDB($link, WikidotLogger $logger = null, $deleteMissing = true)
     {
         $saved = 0;
         $deleted = 0;
-        $all = 0;
-        $oldMembership = array();
-        ScpMembershipDbUtils::select($link, $this->siteId, $oldMembership, $logger);
+        $all = 0;        
         foreach($this->users as $userId => $usr) {
+            $oldMembership = ScpMembershipDbUtils::selectUser($link, $this->siteId, $userId, $logger);
             if ($usr['Date']) {
-                $all++;
-                if (isset($oldMembership[$userId])) {
-                    unset($oldMembership[$userId]);
-                } else {
-                    ScpMembershipDbUtils::insert($link, $this->siteId, $userId, $usr['Date'], $logger);
+                $all++;                
+                ScpMembershipDbUtils::insert($link, $this->siteId, $userId, $usr['Date'], $logger);
+                if (!$oldMembership) {                    
                     $saved++;
-                }
+                }                
+            } else if ($deleteMissing && $oldMembership) {
+                ScpMembershipDbUtils::delete($link, $this->siteId, $userId, $logger);
+                $deleted++;                
             }
         }
-        foreach ($oldMembership as $userId => $joinDate) {
-            ScpMembershipDbUtils::delete($link, $this->siteId, $userId, $logger);
-            $deleted++;
-        }
-        WikidotLogger::logFormat($logger, "Membership saved. Inserted %d, deleted %d, total members %d", array($saved, $deleted, $all));
+//        WikidotLogger::logFormat($logger, "Membership saved. Inserted %d, deleted %d, total members %d", array($saved, $deleted, $all));
     }
+    
+    // Save list of users to DB
+    public function saveMembershipToDBGreedy($link, WikidotLogger $logger = null)
+    {
+        foreach($this->users as $userId => $usr) {
+          ScpMembershipDbUtils::insert($link, $this->siteId, $userId, $usr['Date'], $logger);
+        }
+    }    
 
     // Load membership from DB
     public function loadMembershipFromDB($link, WikidotLogger $logger = null)
@@ -1981,12 +2119,12 @@ class ScpUserList extends WikidotUserList
     }
 
     // Save list of users to DB
-    public function saveToDB($link, WikidotLogger $logger = null)
+    public function saveToDB($link, WikidotLogger $logger = null, $saveMembership = false)
     {
         $saved = 0;
         $changed = 0;
         $startTime = microtime(true);
-        WikidotLogger::log($logger, "::: Saving list of users to DB :::");
+        // WikidotLogger::log($logger, "::: Saving list of users to DB :::");
         try {
             foreach ($this->users as $usr) {
                 if ($usr['User']->getModified()) {
@@ -1996,13 +2134,15 @@ class ScpUserList extends WikidotUserList
                     }
                 }
             }
-            $this->saveMembershipToDb($link, $logger);
+            if ($saveMembership) {
+                $this->saveMembershipToDb($link, $logger);
+            }
         } catch (Exception $e) {
-            WikidotLogger::logFormat($logger, "::: Failed. Saved %d of %d changed users\nError:\"%s\" :::", array($saved, $changed, $e->getMessage()));
+            // WikidotLogger::logFormat($logger, "::: Failed. Saved %d of %d changed users\nError:\"%s\" :::", array($saved, $changed, $e->getMessage()));
             throw $e;
         }
         $total = microtime(true)-$startTime;
-        WikidotLogger::logFormat($logger, "::: Success. Saved %d of %d changed users in %.3f sec :::", array($saved, $changed, $total));
+//        WikidotLogger::logFormat($logger, "::: Success. Saved %d of %d changed users in %.3f sec :::", array($saved, $changed, $total));
         return true;
     }
 
