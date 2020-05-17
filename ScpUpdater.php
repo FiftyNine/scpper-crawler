@@ -311,6 +311,7 @@ class ScpSiteUtils
         $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'scp-series-6', '/scp-\d{3,4}/i', $logger);
         $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'serie-scp-es', '/scp-es-\d{3,4}/i', $logger);
         $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'serie-scp-es-2', '/scp-es-\d{3,4}/i', $logger);
+        $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'serie-scp-es-3', '/scp-es-\d{3,4}/i', $logger);
         $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'scps-humoristicos', '/scp-.+/i', $logger);
         $total += self::updateAltTitlesFromPage($link, $pages, 'lafundacionscp', 'scps-exs', '/scp-\d{3,4}-ex/i', $logger);
         WikidotLogger::logFormat($logger, 'Updated alternative titles for %d pages', [$total]);
