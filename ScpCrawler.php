@@ -906,7 +906,7 @@ class ScpMembershipDbUtils
     const VIEW_USERID = 'UserId';
     const VIEW_JOIN_DATE = 'JoinDate';
     // Text of SQL requests
-    const SELECT_TEXT = 'SELECT UserId, UNIX_TIMESTAMP(JoinDate) FROM membership WHERE SiteId = ?';
+    const SELECT_TEXT = 'SELECT UserId, UNIX_TIMESTAMP(JoinDate) FROM membership WHERE SiteId = ? AND Aborted != ?';
     const INSERT_TEXT = 'INSERT INTO membership (SiteId, UserId, JoinDate) VALUES (?, ?, FROM_UNIXTIME(?)) ON DUPLICATE KEY UPDATE Aborted = 0';
     const DELETE_TEXT = 'UPDATE membership SET Aborted = 1 WHERE SiteId = ? and UserId = ?';
     /*** Fields ***/
@@ -944,7 +944,7 @@ class ScpMembershipDbUtils
     }
 
     // Select membership data from DB by site id and return it as associative array (UserId => JoinDate)
-    public static function select(KeepAliveMysqli $link, $siteId, &$membership, WikidotLogger $logger = null)
+    public static function select(KeepAliveMysqli $link, $siteId, &$membership, $excludeAborted, WikidotLogger $logger = null)
     {
 
         $res = false;
@@ -962,7 +962,13 @@ class ScpMembershipDbUtils
                 }
             }
             $membership = array();
-            self::$selectStmnt->bind_param('d', $siteId);
+            // aborted is always 0 or 1, so pass 2 to select all
+            if ($excludeAborted) {
+                $aborted = 1;
+            } else {
+                $aborted = 2;
+            }
+            self::$selectStmnt->bind_param('dd', $siteId, $aborted);            
             if (self::$selectStmnt->execute()) {
                 self::$selectStmnt->bind_result($userId, $joinTimestamp);
                 while (self::$selectStmnt->fetch()) {
@@ -1905,7 +1911,7 @@ class ScpUserList extends WikidotUserList
         $deleted = 0;
         $all = 0;
         $oldMembership = array();
-        ScpMembershipDbUtils::select($link, $this->siteId, $oldMembership, $logger);
+        ScpMembershipDbUtils::select($link, $this->siteId, $oldMembership, true, $logger);
         foreach($this->users as $userId => $usr) {
             if ($usr['Date']) {
                 $all++;
@@ -1931,7 +1937,7 @@ class ScpUserList extends WikidotUserList
             $usr['Date'] = null;
         }
         $membership = array();
-        ScpMembershipDbUtils::select($link, $this->siteId, $membership, $logger);
+        ScpMembershipDbUtils::select($link, $this->siteId, $membership, false, $logger);
         foreach($membership as $userId => $joinDate) {
             $this->users[$userId]['Date'] = $joinDate;
         }
