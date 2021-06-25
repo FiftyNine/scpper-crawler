@@ -292,6 +292,7 @@ class WikidotUtils
         $fullUrl = sprintf('http://%s.wikidot.com/ajax-module-connector.php', $siteName);
         $request = self::createRequest($fullUrl);
         $request->setMethod(HTTP_Request2::METHOD_POST);
+        $request->setHeader(sprintf('Referer: http://%s.wikidot.com', $siteName));
         if (!is_array($args)) {
             $args = array();
         }
