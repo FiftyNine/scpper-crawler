@@ -1044,6 +1044,9 @@ class WikidotPageList
         WikidotLogger::logFormat($logger, "::: Retrieving list of pages from %s.wikidot.com :::", array($this->siteName));
         try {
             foreach ($catNames as $category) {
+                if (($category=='log-of-unexplained-locations') || ($category=='fragment')||($category=='anomalous-jp')) {
+                    continue;
+                }
                 $defaults = array(
                     'offset' => 0,
                     'page' => 1,
