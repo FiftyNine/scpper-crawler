@@ -593,8 +593,8 @@ class ScpPagesUpdater
         $this->pages->loadFromDB($this->link, $this->logger);
         WikidotLogger::logFormat($this->logger, "After loading from DB: %d", array(memory_get_usage()));
         $this->pages->retrieveCategories($this->logger);
-        foreach ($this->pages->getCategories() as $id => $name) {
-            ScpCategoryDbUtils::insert($this->link, $this->siteId, $id, $name, $this->logger);
+        foreach ($this->pages->getCategories() as $id => $cat) {
+            ScpCategoryDbUtils::insert($this->link, $this->siteId, $id, $cat->getName(), $this->logger);
         }                
         WikidotLogger::logFormat($this->logger, "Before retrieving list: %d", array(memory_get_usage()));
         // Get a list of pages from the site (only names)

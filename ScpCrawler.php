@@ -8,7 +8,16 @@ class ScpCategoryDbUtils
 {
     /*** Constants ***/
     // Name of table
-    const VIEW = 'categories';
+    const VIEW = 'view_categories';
+    
+    // Names of fields in view
+    const VIEW_ID = '__Id';
+    const VIEW_CATEGORYID = 'CategoryId';
+    const VIEW_SITEID = 'SiteId';
+    const VIEW_NAME = 'Name';
+    const VIEW_IGNORED = 'Ignored';
+    const VIEW_SITENAME = 'SiteName';
+    
     // Text of SQL requests
     const INSERT_TEXT = 'INSERT INTO categories (SiteId, WikidotId, Name) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE Name = VALUES(Name);';
 
@@ -41,7 +50,7 @@ class ScpCategoryDbUtils
     private static function clear() {
         self::closeStatement(self::$insertStmnt);
     }
-
+    
     // Insert new record into votes table in DB
     public static function insert(KeepAliveMysqli $link, $siteId, $categoryId, $name, WikidotLogger $logger = null)
     {
@@ -476,7 +485,7 @@ class ScpRevisionDbUtils
                 if (!self::$selectStmnt) {
                     WikidotLogger::logFormat(
                         $logger,
-                        "Failed to prepare SELECT statement for revisions\nError: \"%s\"",
+                        "Failed to prepare SELECT statement for categories\nError: \"%s\"",
                         array($link->error())
                     );
                     return false;
@@ -1310,6 +1319,65 @@ class ScpUserDbUtils
     }
 }
 
+// SCP database category class
+class ScpCategory extends WikidotCategory
+{
+    // Inner database id
+    private $dbId;
+
+    // Save category to DB
+    public function saveToDB(KeepAliveMysqli $link, WikidotLogger $logger = null)
+    {
+        $res = false;
+        try {
+            if (!$this->dbId) {
+                $this->dbId = ScpCategoryDbUtils::selectId($link, $this, $logger);
+            }
+            if (!$this->dbId) {
+                $res = ScpCategoryDbUtils::insert($link, $this, $logger);
+                if ($res) {
+                    $this->dbId = $link->insert_id();
+                }
+            } else
+                $res = true;
+            if (!$res) {
+                WikidotLogger::logFormat(
+                    $logger,
+                    "Failed to save to DB category %d (%s)",
+                    array($this->categoryId, $this->name)
+               );
+            }
+        } catch (Exception $e) {
+            WikidotLogger::logFormat(
+                $logger,
+                "Failed to save to DB category %d (%s)\nError: \"%s\"",
+                array($this->categoryId, $this->name, $e->getMessage())
+            );
+        }
+        return $res;
+    }
+
+    // Set field values from associative array returned by SELECT
+    public function setDbValues($values, WikidotLogger $logger = null)
+    {
+        if (isset($values[ScpCategoryDbUtils::VIEW_ID]) && filter_var($values[ScpCategoryDbUtils::VIEW_ID], FILTER_VALIDATE_INT)) {
+            $this->dbId = (int)$values[ScpCategoryDbUtils::VIEW_ID];
+        }
+        if (isset($values[ScpCategoryDbUtils::VIEW_CATEGORYID]) && filter_var($values[ScpCategoryDbUtils::VIEW_CATEGORYID], FILTER_VALIDATE_INT)) {
+            $this->categoryId = (int)$values[ScpCategoryDbUtils::VIEW_CATEGORYID];
+        }
+        if (isset($values[ScpCategoryDbUtils::VIEW_SITEID]) && filter_var($values[ScpCategoryDbUtils::VIEW_SITEID], FILTER_VALIDATE_INT)) {
+            $this->siteId = (int)$values[ScpCategoryDbUtils::VIEW_SITEID];
+        }        
+        if (isset($values[ScpCategoryDbUtils::VIEW_NAME])) {
+            $this->name = $values[ScpCategoryDbUtils::VIEW_NAME];
+        }
+        if (isset($values[ScpCategoryDbUtils::VIEW_IGNORED])) {
+            $this->ignored = (bool)$values[ScpCategoryDbUtils::VIEW_IGNORED];
+        }
+    }
+}
+
 // SCP database revision class
 class ScpRevision extends WikidotRevision
 {
@@ -1358,7 +1426,6 @@ class ScpRevision extends WikidotRevision
     // Load revision from DB by revisionId
     public function loadFromDB(KeepAliveMysqli $link, WikidotLogger $logger = null)
     {
-
         $res = false;
         try {
             if ($data = ScpRevisionDbUtils::select($link, $this, $logger)) {
@@ -1685,8 +1752,8 @@ class ScpPage extends WikidotPage
             );
         }
         return $res;
-    }
-
+    } 
+    
     // Object was modified since the last save/load from DB
     public function getModified()
     {
@@ -1718,6 +1785,7 @@ class ScpPageList extends WikidotPageList
         $this->pages = array();
         $this->toDelete = array();
         $startTime = microtime(true);
+        $this->loadCategoriesFromDB($link, $logger);
         $query = "SELECT ".ScpPageDbUtils::VIEW_PAGEID." FROM ".ScpPageDbUtils::VIEW." WHERE ".ScpPageDbUtils::VIEW_SITE_NAME." = '{$this->getSiteName()}'";
         WikidotLogger::logFormat($logger, "::: Loading list of pages for site %s.wikidot.com from DB", array($this->getSiteName()));
         try {
@@ -1786,6 +1854,27 @@ class ScpPageList extends WikidotPageList
         );
         return true;
     }
+    
+    // Load categories from DB
+    private function loadCategoriesFromDb(KeepAliveMysqli $link, WikidotLogger $logger = null)
+    {
+        $this->categories = [];
+        $query = "SELECT * FROM ".ScpCategoryDbUtils::VIEW
+            ." WHERE ".ScpCategoryDbUtils::VIEW_SITENAME." = '{$this->getSiteName()}'";
+        if ($dataset = $link->query($query)) {
+            while ($row = $dataset->fetch_assoc()) {
+                $cat = new ScpCategory(0, '');
+                $cat->setDbValues($row);
+                $this->categories[$cat->getId()] = $cat;
+            }
+        } else {
+            WikidotLogger::logFormat(
+                $logger,
+                "Failed to load from DB categories for site http://%s.wikidot.com\nError: \"%s\"",
+                array($this->getSiteName(), $link->error())
+            );
+        }
+    }       
 }
 
 // SCP database user class
