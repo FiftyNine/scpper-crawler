@@ -200,11 +200,13 @@ class ScpSiteUtils
             $a = pq('a', $row);
             $pageName = substr($a->attr('href'), 1);
             if (preg_match($pattern, $pageName)) {
-                $altTitle = substr($row->textContent, strlen($a->text())+3);
+                $rowText = mb_convert_encoding($row->textContent, "UTF-8");
+                $pageTitle = mb_convert_encoding($a->text(), "UTF-8");
+                $altTitle = mb_substr($rowText, mb_strlen($pageName, "UTF-8")+3, NULL, "UTF-8");
                 $page = $pages->getPageByName($pageName);
-                if ($page) {                    
+                if ($page) {
                     $page->setProperty('altTitle', $altTitle);
-                    if ($page->getModified()) {                        
+                    if ($page->getModified()) {
                         $page->saveToDB($link, $logger);
                         $i++;
                     }
