@@ -73,6 +73,7 @@ class KeepAliveMysqli
                 die('');
             }
             $this->link->set_charset("utf8mb4");
+            $this->link->query("SET collation_connection = utf8mb4_unicode_ci");
         }
         $this->lastAccess = microtime(true);
         return $this->link;
