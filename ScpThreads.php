@@ -41,12 +41,14 @@ class ScpAbstractWork extends Threaded
 
 class ScpPageWork extends ScpAbstractWork
 {
-    protected $page;
+    protected $page;    
+    protected $lastRevisions;
 
-    public function __construct(ScpPage $page)
+    public function __construct(ScpPage $page, &$lastRevisions)
     {
         parent::__construct();
         $this->page = $page;
+        $this->lastRevisions = $lastRevisions;
     }
 
     public function run()
@@ -57,10 +59,12 @@ class ScpPageWork extends ScpAbstractWork
             $this->complete = true;
             return;
         }
-        $this->success =
-            $page->retrievePageVotes($logger)
-            && $page->retrievePageHistory($logger)
-            && $page->retrievePageSource($logger);
+        $this->success = $page->retrievePageVotes($logger);
+        if (!array_key_exists($page->getId(), $this->lastRevisions) || ($page->getLastRevision() != $this->lastRevisions[$page->getId()])) {
+            $this->success = $this->success
+                && $page->retrievePageHistory($logger) 
+                && $page->retrievePageSource($logger);
+        }
         $this->page = $page;
         $this->complete = true;
     }
@@ -152,11 +156,15 @@ class ScpMultithreadPagesUpdater extends ScpPagesUpdater
     // Process all the pages
     protected function processPages()
     {
+        $lastRevs = [];
+        foreach ($this->pages->iteratePages() as $page) {
+            $lastRevs[$page->getId()] = $page->getLastRevision();            
+        }               
         $pool = new Pool(SCP_THREADS, ScpThreadWorker::class, [$this->logger]);
         // Iterate through all pages and process them one by one
         for ($i = count($this->sitePages)-1; $i>=0; $i--) {
             $page = $this->sitePages[$i];
-            $pool->submit(new ScpPageWork($page));
+            $pool->submit(new ScpPageWork($page, $lastRevs));
         }
         $left = count($this->sitePages);
         while ($left > 0) {
