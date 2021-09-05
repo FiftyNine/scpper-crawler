@@ -946,6 +946,7 @@ class ScpSiteUpdater
             WikidotLogger::log($logger, "Error: Failed to retrieve site id from database.");
             return;
         }
+        WikidotUtils::selectProtocol($siteName, $logger);
         $ul = new ScpUserList($siteName);
         $ul->loadFromDB($link, $logger);
         $updaterClass = $this->getUsersUpdaterClass();

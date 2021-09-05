@@ -702,15 +702,15 @@ class ScpPageDbUtils
             } else {
                 WikidotLogger::logFormat(
                     $logger,
-                    "Failed to SELECT page http://%s.wikidot.com/%s id=%d\nMysqli error: \"%s\"",
-                    array($page->getSiteName(), $page->getPageName(), $page->getId(), self::$selectStmnt->error)
+                    "Failed to SELECT page %s://%s.wikidot.com/%s id=%d\nMysqli error: \"%s\"",
+                    array(WikidotUtils::$protocol, $page->getSiteName(), $page->getPageName(), $page->getId(), self::$selectStmnt->error)
                 );
             }
         } catch (Exception $e) {
             WikidotLogger::logFormat(
                 $logger,
-                "Failed to SELECT page http://%s.wikidot.com/%s id=%d\nError: \"%s\"",
-                array($page->getSiteName(), $page->getPageName(), $page->getId(), $e->getMessage())
+                "Failed to SELECT page %s://%s.wikidot.com/%s id=%d\nError: \"%s\"",
+                array(WikidotUtils::$protocol, $page->getSiteName(), $page->getPageName(), $page->getId(), $e->getMessage())
             );
         }
         return $res;
@@ -743,15 +743,15 @@ class ScpPageDbUtils
             } else {
                 WikidotLogger::logFormat(
                     $logger,
-                    "Failed to SELECT ID page http://%s.wikidot.com/%s id=%d\nMysqli error: \"%s\"",
-                    array($page->getSiteName(), $page->getPageName(), $page->getId(), self::$selectIdStmnt->error)
+                    "Failed to SELECT ID page %s://%s.wikidot.com/%s id=%d\nMysqli error: \"%s\"",
+                    array(WikidotUtils::$protocol, $page->getSiteName(), $page->getPageName(), $page->getId(), self::$selectIdStmnt->error)
                 );
             }
         } catch (Exception $e) {
             WikidotLogger::logFormat(
                 $logger,
-                "Failed to SELECT ID page http://%s.wikidot.com/%s id=%d\nError: \"%s\"",
-                array($page->getSiteName(), $page->getPageName(), $page->getId(), $e->getMessage())
+                "Failed to SELECT ID page %s://%s.wikidot.com/%s id=%d\nError: \"%s\"",
+                array(WikidotUtils::$protocol, $page->getSiteName(), $page->getPageName(), $page->getId(), $e->getMessage())
             );
         }
         return $res;
@@ -798,15 +798,15 @@ class ScpPageDbUtils
             if (!$res) {
                 WikidotLogger::logFormat(
                     $logger,
-                    "Failed to INSERT page http://%s.wikidot.com/%s id=%d\nMysqli error: \"%s\"",
-                    array($page->getSiteName(), $page->getPageName(), $page->getId(), self::$insertStmnt->error)
+                    "Failed to INSERT page %s://%s.wikidot.com/%s id=%d\nMysqli error: \"%s\"",
+                    array(WikidotUtils::$protocol, $page->getSiteName(), $page->getPageName(), $page->getId(), self::$insertStmnt->error)
                 );
             }
         } catch (Exception $e) {
             WikidotLogger::logFormat(
                 $logger,
-                "Failed to INSERT page http://%s.wikidot.com/%s id=%d\nError: \"%s\"",
-                array($page->getSiteName(), $page->getPageName(), $page->getId(), $e->getMessage())
+                "Failed to INSERT page %s://%s.wikidot.com/%s id=%d\nError: \"%s\"",
+                array(WikidotUtils::$protocol, $page->getSiteName(), $page->getPageName(), $page->getId(), $e->getMessage())
             );
         }
         return $res;
@@ -851,15 +851,15 @@ class ScpPageDbUtils
             if (!$res) {
                 WikidotLogger::logFormat(
                     $logger,
-                    "Failed to UPDATE page http://%s.wikidot.com/%s id=%d\nMysqli error: \"%s\"",
-                    array($page->getSiteName(), $page->getPageName(), $page->getId(), self::$updateStmnt->error)
+                    "Failed to UPDATE page %s://%s.wikidot.com/%s id=%d\nMysqli error: \"%s\"",
+                    array(WikidotUtils::$protocol, $page->getSiteName(), $page->getPageName(), $page->getId(), self::$updateStmnt->error)
                 );
             }
         } catch (Exception $e) {
             WikidotLogger::logFormat(
                 $logger,
-                "Failed to UPDATE page http://%s.wikidot.com/%s id=%d\nError: \"%s\"",
-                array($page->getSiteName(), $page->getPageName(), $page->getId(), $e->getMessage())
+                "Failed to UPDATE page %s://%s.wikidot.com/%s id=%d\nError: \"%s\"",
+                array(WikidotUtils::$protocol, $page->getSiteName(), $page->getPageName(), $page->getId(), $e->getMessage())
             );
         }
         return $res;
@@ -1586,8 +1586,8 @@ class ScpPage extends WikidotPage
         } else {
             WikidotLogger::logFormat(
                 $logger,
-                "Failed to load from DB revisions for page http://%s.wikidot.com/%s id=%d\nError: \"%s\"",
-                array($this->getSiteName(), $this->getPageName(), $this->pageId, $link->error())
+                "Failed to load from DB revisions for page %s://%s.wikidot.com/%s id=%d\nError: \"%s\"",
+                array(WikidotUtils::$protocol, $this->getSiteName(), $this->getPageName(), $this->pageId, $link->error())
             );
         }
     }
@@ -1705,16 +1705,16 @@ class ScpPage extends WikidotPage
                 $link->rollback();
                 WikidotLogger::logFormat(
                     $logger,
-                    "Failed to save to DB page http://%s.wikidot.com/%s id=%d",
-                    array($this->getSiteName(), $this->getPageName(), $this->getId())
+                    "Failed to save to DB page %s://%s.wikidot.com/%s id=%d",
+                    array(WikidotUtils::$protocol, $this->getSiteName(), $this->getPageName(), $this->getId())
                 );
             }
         } catch (Exception $e) {
             $link->rollback();
             WikidotLogger::logFormat(
                 $logger,
-                "Failed to save to DB page http://%s.wikidot.com/%s id=%d\nError: \"%s\"",
-                array($this->getSiteName(), $this->getPageName(), $this->getId(), $e->getMessage())
+                "Failed to save to DB page %s://%s.wikidot.com/%s id=%d\nError: \"%s\"",
+                array(WikidotUtils::$protocol, $this->getSiteName(), $this->getPageName(), $this->getId(), $e->getMessage())
             );
         }
         return $res;
@@ -1747,8 +1747,8 @@ class ScpPage extends WikidotPage
         } catch (Exception $e) {
             WikidotLogger::logFormat(
                 $logger,
-                "Failed to load from DB page http://%s.wikidot.com/%s id=%d\nError: \"%s\"",
-                array($this->getSiteName(), $this->getPageName(), $this->getId(), $e->getMessage())
+                "Failed to load from DB page %s://%s.wikidot.com/%s id=%d\nError: \"%s\"",
+                array(WikidotUtils::$protocol, $this->getSiteName(), $this->getPageName(), $this->getId(), $e->getMessage())
             );
         }
         return $res;
@@ -1870,8 +1870,8 @@ class ScpPageList extends WikidotPageList
         } else {
             WikidotLogger::logFormat(
                 $logger,
-                "Failed to load from DB categories for site http://%s.wikidot.com\nError: \"%s\"",
-                array($this->getSiteName(), $link->error())
+                "Failed to load from DB categories for site %s://%s.wikidot.com\nError: \"%s\"",
+                array(WikidotUtils::$protocol, $this->getSiteName(), $link->error())
             );
         }
     }       

@@ -142,6 +142,8 @@ class WikidotUtils
     public static $requestTimeout = 30;
     // Max number of attempts for a single page
     public static $maxAttempts = 3;
+    // Protocol used for requests
+    public static $protocol = 'http';
 
     /*** Private ***/
     // Create and setup a new request
@@ -289,10 +291,10 @@ class WikidotUtils
     {
         $html = null;
         $status = WikidotStatus::FAILED;
-        $fullUrl = sprintf('http://%s.wikidot.com/ajax-module-connector.php', $siteName);
+        $fullUrl = sprintf('%s://%s.wikidot.com/ajax-module-connector.php', self::$protocol, $siteName);
         $request = self::createRequest($fullUrl);
         $request->setMethod(HTTP_Request2::METHOD_POST);
-        $request->setHeader(sprintf('Referer: http://%s.wikidot.com', $siteName));
+        $request->setHeader(sprintf('Referer: %s://%s.wikidot.com', self::$protocol, $siteName));
         if (!is_array($args)) {
             $args = array();
         }
@@ -347,7 +349,7 @@ class WikidotUtils
     public static function requestPage($siteName, $pageName, &$source, WikidotLogger $logger = null)
     {
         $source = null;
-        $fullUrl = sprintf('http://%s.wikidot.com/%s', $siteName, $pageName);
+        $fullUrl = sprintf('%s://%s.wikidot.com/%s', self::$protocol, $siteName, $pageName);
         $request = self::createRequest($fullUrl);
         $request->setConfig('use_brackets', true);
         $status = WikidotStatus::FAILED;
@@ -377,6 +379,22 @@ class WikidotUtils
             }
         }
         return $status;
+    }
+    
+    // Selects default protocol for the site (https if supported, http otherwise)
+    public static function selectProtocol($siteName, WikidotLogger $logger = null)
+    {
+        self::$protocol = 'http';
+        $url = sprintf('https://%s.wikidot.com', $siteName);
+        $request = self::createRequest($url);
+        $request->setConfig('follow_redirects', false);
+        if ($response = self::sendRequest($request, $logger)) {
+            $httpStatus = $response->getStatus();
+            if ($httpStatus >= 200 && $httpStatus < 300) {
+                self::$protocol = 'https';
+            }
+        }                
+        WikidotLogger::logFormat($logger, '"%s" selected as default protocol', [self::$protocol]);
     }
 }
 
@@ -563,8 +581,8 @@ class WikidotPage
         if (!$this->getSiteId()) {
             WikidotLogger::logFormat(
                 $logger,
-                "Failed to extract SiteId for page {http://%s.wikidot.com/%s}",
-                array($this->getSiteName(), $this->getPageName())
+                "Failed to extract SiteId for page {%s://%s.wikidot.com/%s}",
+                array(WikidotUtils::$protocol, $this->getSiteName(), $this->getPageName())
             );
             return;
         }
@@ -573,8 +591,8 @@ class WikidotPage
         if (!$this->getCategoryId()) {
             WikidotLogger::logFormat(
                 $logger,
-                "Failed to extract CategoryId for page {http://%s.wikidot.com/%s}",
-                array($this->getSiteName(), $this->getPageName())
+                "Failed to extract CategoryId for page {%s://%s.wikidot.com/%s}",
+                array(WikidotUtils::$protocol, $this->getSiteName(), $this->getPageName())
             );
             return;
         }
@@ -583,8 +601,8 @@ class WikidotPage
         if (!$this->getId()) {
             WikidotLogger::logFormat(
                 $logger,
-                "Failed to extract PageId for page {http://%s.wikidot.com/%s}",
-                array($this->getSiteName(), $this->getPageName())
+                "Failed to extract PageId for page {%s://%s.wikidot.com/%s}",
+                array(WikidotUtils::$protocol, $this->getSiteName(), $this->getPageName())
             );
             return;
         }
@@ -603,8 +621,8 @@ class WikidotPage
         } /*else {
             WikidotLogger::logFormat(
                 $logger,
-                "Failed to extract latest revision for page {http://%s.wikidot.com/%s}",
-                array($this->siteName, $this->pageName)
+                "Failed to extract latest revision for page {%s://%s.wikidot.com/%s}",
+                array(WikidotUtils::$protocol, $this->siteName, $this->pageName)
             );
         }*/
 
@@ -615,8 +633,8 @@ class WikidotPage
         } else {
             WikidotLogger::logFormat(
                 $logger,
-                "Failed to extract title for page {http://%s.wikidot.com/%s}",
-                array($this->getSiteName(), $this->getPageName())
+                "Failed to extract title for page {%s://%s.wikidot.com/%s}",
+                array(WikidotUtils::$protocol, $this->getSiteName(), $this->getPageName())
             );
             return;
         }
@@ -632,8 +650,8 @@ class WikidotPage
         } else {
             WikidotLogger::logFormat(
                 $logger,
-                "Failed to extract tags for page {http://%s.wikidot.com/%s}",
-                array($this->getSiteName(), $this->getPageName())
+                "Failed to extract tags for page {%s://%s.wikidot.com/%s}",
+                array(WikidotUtils::$protocol, $this->getSiteName(), $this->getPageName())
             );
             return;
         }
@@ -741,8 +759,8 @@ class WikidotPage
         if (!$res) {
             WikidotLogger::logFormat(
                 $logger,
-                "Failed to retrieve source for page {http://%s.wikidot.com/%s}",
-                array($this->getSiteName(), $this->getPageName())
+                "Failed to retrieve source for page {%s://%s.wikidot.com/%s}",
+                array(WikidotUtils::$protocol, $this->getSiteName(), $this->getPageName())
             );
         }
         return $res;
@@ -790,8 +808,8 @@ class WikidotPage
         if (!$res) {
             WikidotLogger::logFormat(
                 $logger,
-                "Failed to retrieve votes for page {http://%s.wikidot.com/%s}",
-                array($this->getSiteName(), $this->getPageName())
+                "Failed to retrieve votes for page {%s://%s.wikidot.com/%s}",
+                array(WikidotUtils::$protocol, $this->getSiteName(), $this->getPageName())
             );
         }
         return $res;
@@ -826,8 +844,8 @@ class WikidotPage
         } else {
             WikidotLogger::logFormat(
                 $logger,
-                "Failed to retrieve votes for page {http://%s.wikidot.com/%s}",
-                array($this->getSiteName(), $this->getPageName())
+                "Failed to retrieve votes for page {%s://%s.wikidot.com/%s}",
+                array(WikidotUtils::$protocol, $this->getSiteName(), $this->getPageName())
             );
         }
         return $res;
