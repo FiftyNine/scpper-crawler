@@ -2,6 +2,10 @@
 
 require_once "ScpUpdater.php";
 
+// Global var for thread workers to read from because I have no idea how
+// memory management and passing be reference works in PHP
+$lastRevisions = [];
+
 class ScpThreadWorker extends Worker
 {
 
@@ -42,17 +46,18 @@ class ScpAbstractWork extends Threaded
 class ScpPageWork extends ScpAbstractWork
 {
     protected $page;    
-    protected $lastRevisions;
+    //protected $lastRevisions;
 
-    public function __construct(ScpPage $page, &$lastRevisions)
+    public function __construct(ScpPage $page/*, &$lastRevisions*/)
     {
         parent::__construct();
         $this->page = $page;
-        $this->lastRevisions = $lastRevisions;
+        //$this->lastRevisions = $lastRevisions;
     }
 
     public function run()
     {
+        global $lastRevisions;
         $logger = $this->worker->getLogger();
         $page = $this->page;
         if (!$page->retrievePageInfo($logger)) {
@@ -60,7 +65,7 @@ class ScpPageWork extends ScpAbstractWork
             return;
         }
         $this->success = $page->retrievePageVotes($logger);
-        if (!array_key_exists($page->getId(), $this->lastRevisions) || ($page->getLastRevision() != $this->lastRevisions[$page->getId()])) {
+        if (!array_key_exists($page->getId(), $lastRevisions) || ($page->getLastRevision() != $lastRevisions[$page->getId()])) {
             $this->success = $this->success
                 && $page->retrievePageHistory($logger) 
                 && $page->retrievePageSource($logger);
@@ -156,15 +161,16 @@ class ScpMultithreadPagesUpdater extends ScpPagesUpdater
     // Process all the pages
     protected function processPages()
     {
-        $lastRevs = [];
+        global $lastRevisions;
+        $lastRevisions = [];
         foreach ($this->pages->iteratePages() as $page) {
-            $lastRevs[$page->getId()] = $page->getLastRevision();            
+            $lastRevisions[$page->getId()] = $page->getLastRevision();            
         }               
         $pool = new Pool(SCP_THREADS, ScpThreadWorker::class, [$this->logger]);
         // Iterate through all pages and process them one by one
         for ($i = count($this->sitePages)-1; $i>=0; $i--) {
             $page = $this->sitePages[$i];
-            $pool->submit(new ScpPageWork($page, $lastRevs));
+            $pool->submit(new ScpPageWork($page/*, $lastRevs*/));
         }
         $left = count($this->sitePages);
         while ($left > 0) {
