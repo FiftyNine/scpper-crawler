@@ -46,13 +46,11 @@ class ScpAbstractWork extends Threaded
 class ScpPageWork extends ScpAbstractWork
 {
     protected $page;    
-    //protected $lastRevisions;
 
-    public function __construct(ScpPage $page/*, &$lastRevisions*/)
+    public function __construct(ScpPage $page)
     {
         parent::__construct();
         $this->page = $page;
-        //$this->lastRevisions = $lastRevisions;
     }
 
     public function run()
@@ -170,7 +168,7 @@ class ScpMultithreadPagesUpdater extends ScpPagesUpdater
         // Iterate through all pages and process them one by one
         for ($i = count($this->sitePages)-1; $i>=0; $i--) {
             $page = $this->sitePages[$i];
-            $pool->submit(new ScpPageWork($page/*, $lastRevs*/));
+            $pool->submit(new ScpPageWork($page));
         }
         $left = count($this->sitePages);
         while ($left > 0) {
