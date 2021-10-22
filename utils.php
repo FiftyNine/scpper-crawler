@@ -1,7 +1,7 @@
 
 <?php
 
-require_once "auth.inc";
+//require_once "auth.inc";
 
 class KeepAliveMysqli
 {
@@ -173,7 +173,7 @@ function createPage()
     $html->appendChild($body);
     return $document;
 }
-
+/*
 function getDbLink($mode = 0)
 {
     global $SCPPER_READER;
@@ -189,7 +189,7 @@ function getDbLink($mode = 0)
     }
     $link->set_charset("utf8mb4");
     return $link;
-}
+}*/
 
 function generateCallTrace()
 {

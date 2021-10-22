@@ -3,3 +3,6 @@ HTTP
 Net
 PEAR
 phpQuery
+vendor
+composer.phar
+composer.lock

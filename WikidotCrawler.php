@@ -5,29 +5,31 @@
  * pages, users, etc. Effectively this is a homemade API for accessing WIKIDOT information.
  *
 **/
+set_include_path(get_include_path() . PATH_SEPARATOR . './Crawler');
 require_once 'HTTP/Request2.php';
 require_once 'phpQuery/phpQuery.php';
+
 /******************************************************/
 /************ Classes for logging *********************/
 /******************************************************/
 
-if (defined('SCP_THREADS')) {
+/*if (defined('SCP_THREADS')) {
     abstract class WikidotLoggerBase extends Threaded
     {
 
     }
-} else {
+} else {*/
     abstract class WikidotLoggerBase
     {
 
     }
-}
+//}
 
 // Base class for loggers
 abstract class WikidotLogger extends WikidotLoggerBase
 {
     /*** Fields ***/
-    private $timeZone = null;
+    protected $timeZone = null;
 
     /*** Private ***/
     // Adds timestamp and linebreak to a message
@@ -90,7 +92,7 @@ class WikidotFileLogger extends WikidotLogger
 {
     /*** Fields ***/
     // Path to the log file
-    private $fileName;
+    protected $fileName;
 
     /*** Protected ***/
     // Write message to log file
@@ -116,6 +118,28 @@ class WikidotDebugLogger extends WikidotLogger
     {
         print($message);
     }
+}
+
+// Logger class that writes messages both to a log file and to the standard output
+class WikidotCronLogger extends WikidotFileLogger
+{
+    /*** Protected ***/
+    // Write message to log file
+    protected function logInternal($message)
+    {
+        parent::logInternal($message);
+        echo $message;
+    }
+}
+
+class WikidotExceptionLogger extends WikidotLogger
+{
+    /*** Protected ***/
+    // Write message to log file
+    protected function logInternal($message)
+    {
+        throw new Exception($message);
+    }    
 }
 
 /******************************************************/
@@ -157,7 +181,7 @@ class WikidotUtils
         $request->setConfig('timeout', self::$requestTimeout);
         return $request;
     }
-
+    
     // Sends request at most $maxAttempts times, returns response object
     private static function sendRequest($request, WikidotLogger $logger = null)
     {
@@ -187,7 +211,8 @@ class WikidotUtils
         }
         return $response;
     }
-
+    
+    
     /*** Public ***/
 
     // Searches for a pager in html and returns number of pages in it. 1 if pager is not found
@@ -292,9 +317,6 @@ class WikidotUtils
         $html = null;
         $status = WikidotStatus::FAILED;
         $fullUrl = sprintf('%s://%s.wikidot.com/ajax-module-connector.php', self::$protocol, $siteName);
-        $request = self::createRequest($fullUrl);
-        $request->setMethod(HTTP_Request2::METHOD_POST);
-        $request->setHeader(sprintf('Referer: %s://%s.wikidot.com', self::$protocol, $siteName));
         if (!is_array($args)) {
             $args = array();
         }
@@ -302,12 +324,16 @@ class WikidotUtils
         $args['pageId'] = $pageId;
         $args['page_id'] = $pageId;
         $args['wikidot_token7'] = 'ayylmao';
+        $request = self::createRequest($fullUrl);
+        $request->setMethod(HTTP_Request2::METHOD_POST);
+        $request->setHeader(sprintf('Referer: %s://%s.wikidot.com', self::$protocol, $siteName));        
         $request->addPostParameter($args);
         $request->addCookie('wikidot_token7', 'ayylmao');
         if ($response = self::sendRequest($request, $logger)) {
             $httpStatus = $response->getStatus();
             if ($httpStatus >= 200 && $httpStatus < 300) {
-                $body = json_decode($response->getBody());
+                $body = $response->getBody();
+                $body = json_decode($body);
                 if ($body && $body->status == 'ok' && isset($body->body)) {
                     $status = WikidotStatus::OK;
                     $html = $body->body;
@@ -338,7 +364,7 @@ class WikidotUtils
                 WikidotLogger::logFormat(
                     $logger,
                     "Failed to retrieve module {%s %s}\nHTTP status: %d. Error message: \"%s\"\nArguments: %s",
-                    array($siteName, $moduleName, $response->getStatus(), $response->getReasonPhrase(), var_export($args, true))
+                    array($siteName, $moduleName, $response->getStatusCode(), $response->getReasonPhrase(), var_export($args, true))
                 );
             }
         }
@@ -362,14 +388,14 @@ class WikidotUtils
                 WikidotLogger::logFormat(
                     $logger,
                     "Failed to retrieve page {%s}. HTTP status: %d. Redirect detected",
-                    array($request->getURL(), $httpStatus)
+                    array($request->getUrl(), $httpStatus)
                 );
                 $status = WikidotStatus::REDIRECT;
             } else {
                 WikidotLogger::logFormat(
                     $logger,
                     "Failed to retrieve {%s}. HTTP status: %d\nError message: \"%s\"",
-                    array($request->getURL(), $httpStatus, $response->getReasonPhrase())
+                    array($request->getUrl(), $httpStatus, $response->getReasonPhrase())
                 );
                 if ($httpStatus === 404) {
                     $status = WikidotStatus::NOT_FOUND;
@@ -390,6 +416,7 @@ class WikidotUtils
         $request->setConfig('follow_redirects', false);
         if ($response = self::sendRequest($request, $logger)) {
             $httpStatus = $response->getStatus();
+            //$httpStatus = $response->getStatusCode();
             if ($httpStatus >= 200 && $httpStatus < 300) {
                 self::$protocol = 'https';
             }
@@ -567,7 +594,7 @@ class WikidotPage
     protected $lastRevision = -1;
     // List of users who edited, voted or otherwise influenced the page (retrieved with history and voting modules)
     // (UserId => WikidotUser)
-    protected $retrievedUsers;
+    public $retrievedUsers;
 
     /*** Private ***/
 

@@ -1,0 +1,8 @@
+{
+"require": {
+                "spatie/async": "^1.5"
+    },
+"autoload": {
+       "files": ["ScpAsyncTask.php"]
+   }
+}

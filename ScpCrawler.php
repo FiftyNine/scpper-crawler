@@ -1485,6 +1485,8 @@ class ScpPage extends WikidotPage
     // Hash of source
     private $sourceHash;
 
+    public $test = false;
+    
     /*** Private ***/
 
     // Set field values from associative array returned by SELECT
@@ -1677,7 +1679,7 @@ class ScpPage extends WikidotPage
             throw new Exception("Wrong number/type of arguments in ScpPage constructor");
         }
     }
-
+    
     // Save page to DB
     public function saveToDB(KeepAliveMysqli $link, WikidotLogger $logger = null)
     {
