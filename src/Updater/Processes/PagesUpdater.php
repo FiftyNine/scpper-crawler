@@ -3,9 +3,20 @@
 namespace ScpCrawler\Updater\Processes;
 
 use ScpCrawler\Logger\Logger;
+use ScpCrawler\Scp\DbUtils\KeepAliveMysqli;
 
 class PagesUpdater extends \ScpCrawler\Updater\PagesUpdater
 {
+    protected $tempPath;
+    protected $maxProcesses;
+    
+    public function __construct(KeepAliveMysqli $link, $siteId, \ScpCrawler\Scp\PageList $pages, $tempPath, $maxProcesses, Logger $logger = null, \ScpCrawler\Scp\UserList $users = null)
+    {
+        parent::__construct($link, $siteId, $pages, $logger, $users);
+        $this->tempPath = $tempPath;
+        $this->maxProcesses = $maxProcesses;
+    }  
+    
     // Process all the pages
     protected function processPages()
     {
@@ -14,7 +25,7 @@ class PagesUpdater extends \ScpCrawler\Updater\PagesUpdater
             $pagesByName[$page->getPageName()] = $page;
         }
         $pool = \Spatie\Async\Pool::create();
-        $pool->concurrency(SCP_THREADS);
+        $pool->concurrency($this->maxProcesses);
         // Iterate through all pages and process them one by one
         $prevId = -1;
         $prevRevision = -1;
@@ -28,7 +39,7 @@ class PagesUpdater extends \ScpCrawler\Updater\PagesUpdater
                 $prevId = $oldPage->getId();
                 $prevRevision = $oldPage->getLastRevision();
             }
-            $pool->add(new PageTask($page, $prevId, $prevRevision, \ScpCrawler\Wikidot\Utils::$protocol))
+            $pool->add(new PageTask($page, $prevId, $prevRevision, \ScpCrawler\Wikidot\Utils::$protocol, $this->tempPath))
                 ->then(function ($filename) {
                    $task = unserialize(file_get_contents($filename));
                    unlink($filename);

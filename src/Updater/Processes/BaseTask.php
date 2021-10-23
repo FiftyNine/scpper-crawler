@@ -6,15 +6,17 @@ abstract class BaseTask extends \Spatie\Async\Task
 {
     protected $success;
     protected $protocol;
+    protected $tempPath;
 
-    public function __construct($protocol = 'http')
+    public function __construct($protocol, $tempPath)
     {
         $this->protocol = $protocol;
+        $this->tempPath = $tempPath;
     }
 
     protected function saveToFile()
     {
-        $filename = uniqid("./shared/", true);
+        $filename = uniqid($this->tempPath, true);
         file_put_contents($filename, serialize($this));
         return $filename;
     }

@@ -3,13 +3,22 @@
 namespace ScpCrawler\Updater\Threads;
 
 use ScpCrawler\Logger\Logger;
+use ScpCrawler\Scp\DbUtils\KeepAliveMysqli;
 
 class UsersUpdater extends \ScpCrawler\Updater\UsersUpdater
 {
+    protected $maxThreads;
+    
+    public function __construct(KeepAliveMysqli $link, $siteName, \ScpCrawler\Scp\UserList $users, $maxThreads, Logger $logger = null)
+    {
+        parent::__construct($link, $siteName, $users, $logger);
+        $this->maxThreads = $maxThreads;
+    }    
+    
     // Retrieve all the users
     protected function retrieveUsers()
     {
-        $pool = new \Pool(SCP_THREADS, UpdateWorker::class, [$this->logger]);
+        $pool = new \Pool($this->maxThreads, UpdateWorker::class, [$this->logger]);
         for ($i = 1; $i <= $this->pageCount; $i++) {
             $pool->submit(new UsersWork($this->siteName, $i));
         }

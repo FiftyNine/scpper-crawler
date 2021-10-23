@@ -2,8 +2,19 @@
 
 namespace ScpCrawler\Updater\Threads;
 
+use ScpCrawler\Logger\Logger;
+use ScpCrawler\Scp\DbUtils\KeepAliveMysqli;
+
 class PagesUpdater extends \ScpCrawler\Updater\PagesUpdater
 {
+    protected $maxThreads;
+    
+    public function __construct(KeepAliveMysqli $link, $siteId, \ScpCrawler\Scp\PageList $pages, $maxThreads, Logger $logger = null, \ScpCrawler\Scp\UserList $users = null)
+    {
+        parent::__construct($link, $siteId, $pages, $logger, $users);
+        $this->maxThreads = $maxThreads;
+    }    
+    
     // Process all the pages
     protected function processPages()
     {
@@ -11,7 +22,7 @@ class PagesUpdater extends \ScpCrawler\Updater\PagesUpdater
         foreach ($this->pages->iteratePages() as $page) {
             $pagesByName[$page->getPageName()] = $page;
         }               
-        $pool = new \Pool(SCP_THREADS, UpdateWorker::class, [$this->logger]);
+        $pool = new \Pool($this->maxThreads, UpdateWorker::class, [$this->logger]);
         // Iterate through all pages and process them one by one
         for ($i = count($this->sitePages)-1; $i>=0; $i--) {
             $prevId = -1;
@@ -44,5 +55,5 @@ class PagesUpdater extends \ScpCrawler\Updater\PagesUpdater
                 }
             );
         }
-    }
+    }       
 }

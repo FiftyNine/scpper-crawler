@@ -8,15 +8,27 @@
 
 namespace ScpCrawler\Updater\Processes;
 
+use ScpCrawler\Logger\Logger;
+use ScpCrawler\Scp\DbUtils\KeepAliveMysqli;
+
 class SiteUpdater extends \ScpCrawler\Updater\SiteUpdater
 {
-    protected function getPagesUpdaterClass()
+    protected $tempPath;
+    protected $maxProcesses;
+    
+    protected function createUsersUpdater(KeepAliveMysqli $link, $siteName, \ScpCrawler\Scp\UserList $users, Logger $logger = null)
     {
-        return '\ScpCrawler\Updater\Processes\PagesUpdater';
+        return new \ScpCrawler\Updater\Processes\UsersUpdater($link, $siteName, $users, $this->tempPath, $this->maxProcesses, $logger);
     }
 
-    protected function getUsersUpdaterClass()
+    protected function createPagesUpdater(KeepAliveMysqli $link, $siteId, \ScpCrawler\Scp\PageList $pages, Logger $logger = null, \ScpCrawler\Scp\UserList $users = null)
     {
-        return '\ScpCrawler\Updater\Processes\UsersUpdater';
+        return new \ScpCrawler\Updater\Processes\PagesUpdater($link, $siteId, $pages, $this->tempPath, $this->maxProcesses, $logger, $users);
+    }
+    
+    public function __construct($tempPath, $maxProcesses = 16)
+    {
+        $this->tempPath = $tempPath;
+        $this->maxProcesses = $maxProcesses;
     }
 }

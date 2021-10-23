@@ -7,16 +7,16 @@ use ScpCrawler\Scp\DbUtils\KeepAliveMysqli;
 
 class SiteUpdater
 {
-    protected function getUsersUpdaterClass()
+    protected function createUsersUpdater(KeepAliveMysqli $link, $siteName, \ScpCrawler\Scp\UserList $users, Logger $logger = null)
     {
-        return '\ScpCrawler\Updater\UsersUpdater';
+        return new \ScpCrawler\Updater\UsersUpdater($link, $siteName, $users, $logger);
     }
 
-    protected function getPagesUpdaterClass()
+    protected function createPagesUpdater(KeepAliveMysqli $link, $siteId, \ScpCrawler\Scp\PageList $pages, Logger $logger = null, \ScpCrawler\Scp\UserList $users = null)
     {
-        return '\ScpCrawler\Updater\PagesUpdater';
+        return new \ScpCrawler\Updater\PagesUpdater($link, $siteId, $pages, $logger, $users);
     }
-
+    
     protected function updateStatusOverrides($siteName, KeepAliveMysqli $link, \ScpCrawler\Scp\PageList $pages = null, \ScpCrawler\Scp\UserList $users = null, Logger $logger = null)
     {
         if ($siteName == 'scp-wiki') {
@@ -123,16 +123,12 @@ class SiteUpdater
         }
         \ScpCrawler\Wikidot\Utils::selectProtocol($siteName, $logger);
         $ul = new \ScpCrawler\Scp\UserList($siteName);
-        $ul->loadFromDB($link, $logger);
-        $updaterClass = $this->getUsersUpdaterClass();
-        $userUpdater = new $updaterClass($link, $siteName, $ul, $logger);
-        $userUpdater->go();
-        unset($userUpdater);
-        //$ul->updateFromSite($logger);
-        //$ul->saveToDB($link, $logger);
+        $ul->loadFromDB($link, $logger);       
+        $usersUpdater = $this->createUsersUpdater($link, $siteName, $ul, $logger);
+        $usersUpdater->go();
+        unset($usersUpdater);        
         $pl = new \ScpCrawler\Scp\PageList($siteName);
-        $updaterClass = $this->getPagesUpdaterClass();
-        $pageUpdater = new $updaterClass($link, $siteId, $pl, $logger, $ul);
+        $pageUpdater = $this->createPagesUpdater($link, $siteId, $pl, $logger, $ul);
         $pageUpdater->go();
         unset($pageUpdater);
         $pl = new \ScpCrawler\Scp\PageList($siteName);

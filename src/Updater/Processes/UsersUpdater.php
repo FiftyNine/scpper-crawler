@@ -3,16 +3,27 @@
 namespace ScpCrawler\Updater\Processes;
 
 use ScpCrawler\Logger\Logger;
+use ScpCrawler\Scp\DbUtils\KeepAliveMysqli;
 
 class UsersUpdater extends \ScpCrawler\Updater\UsersUpdater
 {
+    protected $tempPath;
+    protected $maxProcesses;    
+    
+    public function __construct(KeepAliveMysqli $link, $siteName, \ScpCrawler\Scp\UserList $users, $tempPath, $maxProcesses, Logger $logger = null)
+    {
+        parent::__construct($link, $siteName, $users, $logger);
+        $this->tempPath = $tempPath;
+        $this->maxProcesses = $maxProcesses;
+    }      
+    
     // Retrieve all the users
     protected function retrieveUsers()
     {
         $pool = \Spatie\Async\Pool::create();
-        $pool->concurrency(SCP_THREADS);
+        $pool->concurrency($this->maxProcesses);
         for ($i = 1; $i <= $this->pageCount; $i++) {
-            $pool->add(new UsersTask($this->siteName, $i, \ScpCrawler\Wikidot\Utils::$protocol))
+            $pool->add(new UsersTask($this->siteName, $i, \ScpCrawler\Wikidot\Utils::$protocol, $this->tempPath))
                 ->then(function ($filename) {
                     $task = unserialize(file_get_contents($filename));
                     unlink($filename);

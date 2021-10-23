@@ -8,9 +8,9 @@ class UsersTask extends BaseTask
     protected $pageIndex;
     protected $pageHtml;
 
-    public function __construct($siteName, $pageIndex, $protocol = 'http')
+    public function __construct($siteName, $pageIndex, $protocol, $tempPath)
     {
-        parent::__construct($protocol);
+        parent::__construct($protocol, $tempPath);
         $this->siteName = $siteName;
         $this->pageIndex = $pageIndex;
     }

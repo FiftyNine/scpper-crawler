@@ -8,9 +8,9 @@ class PageTask extends BaseTask
     protected $prevId;
     protected $prevRevision;
 
-    public function __construct(\ScpCrawler\Scp\Page $page, $prevId, $prevRevision, $protocol = 'http')
+    public function __construct(\ScpCrawler\Scp\Page $page, $prevId, $prevRevision, $protocol, $tempPath)
     {
-        parent::__construct($protocol);
+        parent::__construct($protocol, $tempPath);
         $this->page = $page;
         $this->prevId = $prevId;
         $this->prevRevision = $prevRevision;
