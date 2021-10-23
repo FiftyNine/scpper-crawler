@@ -1,8 +1,15 @@
 {
-"require": {
-                "spatie/async": "^1.5"
+    "require": {
+        "spatie/async": "^1.5",
+        "pear/http_request2": "^2.5"
     },
-"autoload": {
-       "files": ["ScpAsyncTask.php"]
-   }
+    "autoload": {
+        "files": [
+            "src/Misc/mysqliUtils.php",
+            "src/Misc/phpQuery.php"
+        ],
+        "psr-4": {
+            "ScpCrawler\\": "src"
+        }
+    }
 }
