@@ -6,4 +6,4 @@ phpQuery
 vendor
 composer.phar
 composer.lock
-/nbproject/private/
+nbproject
