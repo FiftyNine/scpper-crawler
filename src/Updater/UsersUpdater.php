@@ -98,5 +98,6 @@ class UsersUpdater
         }
         // retrieveUsers can change $this->failed flag
         $this->finishUpdate();
+        return !$this->failed;
     }
 }

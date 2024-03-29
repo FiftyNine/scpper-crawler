@@ -121,11 +121,12 @@ class SiteUpdater
             Logger::log($logger, "Error: Failed to retrieve site id from database.");
             return;
         }
+        $startTime = date("Y-m-d H:i:s");
         \ScpCrawler\Wikidot\Utils::selectProtocol($siteName, $logger);
         $ul = new \ScpCrawler\Scp\UserList($siteName);
         $ul->loadFromDB($link, $logger);       
         $usersUpdater = $this->createUsersUpdater($link, $siteName, $ul, $logger);
-        $usersUpdater->go();
+        $usersUpdated = $usersUpdater->go();
         unset($usersUpdater);        
         $pl = new \ScpCrawler\Scp\PageList($siteName);
         $pageUpdater = $this->createPagesUpdater($link, $siteId, $pl, $logger, $ul);
@@ -136,13 +137,17 @@ class SiteUpdater
         $this->updateStatusOverrides($siteName, $link, $pl, $ul, $logger);
         Logger::log($logger, "Updating alternative titles...");
         $this->updateAlternativeTitles($siteName, $link, $pl, $logger);
-        $link->query("UPDATE sites SET LastUpdate = Now() WHERE WikidotId = '$siteId'");
         Logger::log($logger, "Updating user activity...");
-        $link->query("CALL UPDATE_USER_ACTIVITY('$siteId')");
+        $link->query("CALL UPDATE_USER_ACTIVITY('$siteId')");        
+        if (!$usersUpdated) {
+            Logger::log($logger, "Fixing membership (failed to update users)...");
+            $link->query("CALL FIX_MISSING_MEMBERSHIP('$siteId')");            
+        }
         Logger::log($logger, "Updating page summaries...");
         $link->query("CALL UPDATE_PAGE_SUMMARY('$siteId')");
         Logger::log($logger, "Updating site stats...");
         $link->query("CALL UPDATE_SITE_STATS('$siteId')");
+        $link->query("UPDATE sites SET LastUpdate = '$startTime' WHERE WikidotId = '$siteId'");
         Logger::logFormat($logger, "Peak memory usage: %d kb", array(round(memory_get_peak_usage()/1024)));
         Logger::logFormat($logger, "======= Update %s.wikidot.com has finished =======", array($siteName));
     }
