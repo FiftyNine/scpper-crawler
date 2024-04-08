@@ -7,5 +7,4 @@ vendor
 composer.phar
 composer.lock
 nbproject
-Dockerfile
 update.php
