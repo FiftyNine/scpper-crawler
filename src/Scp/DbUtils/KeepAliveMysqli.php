@@ -16,6 +16,8 @@ class KeepAliveMysqli
     private $password;
     private $database;
     private $port;    
+    private $retries = 5;
+    private $retry_timeout = 10000; // ms
 
     public function __construct($host, $login, $password, $database, $port, $logger = null)
     {
@@ -68,15 +70,32 @@ class KeepAliveMysqli
             if ($this->link) {
                 $this->link->close();
             }            
-            $this->link = new \mysqli($this->host, $this->login, $this->password, $this->database, $this->port);
-            if ($this->link->connect_error) {                
-                Logger::log($this->logger, 'Connect Error (' . $this->link->connect_errno . ') '. $this->link->connect_error);
-                die('');
+            $tries = 0;
+            while ($tries < $this->retries)
+            {
+                $this->link = new \mysqli($this->host, $this->login, $this->password, $this->database, $this->port);
+                if ($this->link->connect_error) {                
+                    Logger::log($this->logger, 'Connect Error (' . $this->link->connect_errno . ') '. $this->link->connect_error);                    
+                    $tries++;
+                    if ($tries < $this->retries)
+                    {
+                        Logger::log($this->logger, "Waiting for $this->retry_timeout ms before retrying...");
+                        usleep($this->retry_timeout*1000);
+                    }
+                } else {
+                    break;
+                }
             }
             $this->link->set_charset("utf8mb4");
             $this->link->query("SET collation_connection = utf8mb4_unicode_ci");
         }
         $this->lastAccess = microtime(true);
         return $this->link;
+    }
+
+    public function set_connect_retries($count, $timeout)
+    {
+        $this->retries = $count;
+        $this->retry_timeout = $timeout;
     }
 }
